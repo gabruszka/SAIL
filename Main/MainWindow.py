@@ -135,7 +135,7 @@ class MainWindow(QtGui.QMainWindow):
         
     def onFindContext(self):
         if self.ui.contextWord.text() != "":
-            contexts = self.engine.findWordContext(self.ui.contextWord.text(), self.ui.wordsOnLeft.value(), self.ui.wordsOnRight.value(), self.ui.contextCount.value())
+            contexts = self.engine.findWordContext(self.ui.contextWord.text(), self.ui.contextCount.value(), self.ui.contextLength.value()/2)
             if contexts != []:
                 title = str(self.ui.contextCount.value()) + ' contexts of \'' + self.ui.contextWord.text() + '\''
                 self.showDataDialog(False, contexts, title, ["Context"], 300)
