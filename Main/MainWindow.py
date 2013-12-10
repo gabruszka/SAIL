@@ -29,25 +29,39 @@ class MainWindow(QtGui.QMainWindow):
         self.ui = uic.loadUi("form.ui")
         self.ui.show()
         self.ui.tabWidget.setEnabled(False)
-        self.ui.load.setEnabled(False)
+        self.ui.loadBtn.setEnabled(False)
         
     def connectSlots(self):
-        self.connect(self.ui.browse, QtCore.SIGNAL("clicked()"), self.onSelectFile)
-        self.connect(self.ui.load, QtCore.SIGNAL("clicked()"), self.onLoadCorpus)
-        self.connect(self.ui.findMostCommon, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
-        self.connect(self.ui.hapaxes, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
-        self.connect(self.ui.findContext, QtCore.SIGNAL("clicked()"), self.onFindContext)
+        self.connect(self.ui.browseBtn, QtCore.SIGNAL("clicked()"), self.onSelectFile)
+        self.connect(self.ui.loadBtn, QtCore.SIGNAL("clicked()"), self.onLoadCorpus)
+        self.connect(self.ui.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
+        self.connect(self.ui.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
+        self.connect(self.ui.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
+        self.connect(self.ui.showBtn, QtCore.SIGNAL("clicked()"), self.onShow)
          
     def onLoadCorpus(self):
         self.engine.setPath(self.ui.corpusPath.text())
         self.engine.loadCorpus()
         self.ui.wordCount.setText(str(self.engine.getWordCount()))
         self.ui.tabWidget.setEnabled(True)
-        self.ui.load.setEnabled(False)
+        self.ui.loadBtn.setEnabled(False)
         
     def onSelectFile(self):
         self.ui.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
-        self.ui.load.setEnabled(True)
+        self.ui.loadBtn.setEnabled(True)
+        
+    def onShow(self):
+        dialog= QtGui.QDialog(self)
+        dialog.setMinimumHeight(300)
+        dialog.setWindowTitle("Corpus Text")
+        
+        plainText = QtGui.QPlainTextEdit()
+        plainText.setPlainText(self.engine.getFullText())
+        
+        layout = QtGui.QHBoxLayout(dialog)
+        layout.addWidget(plainText)
+        dialog.setLayout(layout)
+        dialog.show()
         
         # wyswietlanie danych - jesli tabelka to stringi w pierwszej kolumnie parametru data, reszta liczbowo //do przemyslenia
         # jesli nie tabelka to lista danych (stringi)
@@ -91,12 +105,21 @@ class MainWindow(QtGui.QMainWindow):
             model.setHeaderData(i, QtCore.Qt.Horizontal, QtCore.QVariant(headerList[i]))
             
         tableView.setModel(model)
-        tableView.setColumnWidth(2, rowWidth)
-        
+        tableView.setColumnWidth(1, rowWidth)
+        tableView.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
         layout = QtGui.QHBoxLayout(dialog)
         layout.addWidget(tableView)
         dialog.setLayout(layout)
         dialog.show()
+        
+    def noMatchesWindow(self):
+        box= QtGui.QMessageBox(self)
+        box.setText("No matches")
+        box.setMinimumHeight(300)
+        box.setWindowTitle("No matches")
+        
+        box.exec_()
+        
         
     def onFindMostCommon(self):
         
@@ -111,10 +134,10 @@ class MainWindow(QtGui.QMainWindow):
         self.showDataDialog(False, hapaxes, title, ["Word"])
         
     def onFindContext(self):
-        
-        contexts = self.engine.findWordContext(self.ui.contextWord.text())
-        data =[]
-        data.append(contexts)
-        title = ' Context of \'' + self.ui.contextWord.text() + '\''
-        self.showDataDialog(False, contexts, title, ["Context"], 500)
-        
+        if self.ui.contextWord.text() != "":
+            contexts = self.engine.findWordContext(self.ui.contextWord.text(), self.ui.wordsOnLeft.value(), self.ui.wordsOnRight.value(), self.ui.contextCount.value())
+            if contexts != []:
+                title = str(self.ui.contextCount.value()) + ' contexts of \'' + self.ui.contextWord.text() + '\''
+                self.showDataDialog(False, contexts, title, ["Context"], 300)
+            else:
+                self.noMatchesWindow()

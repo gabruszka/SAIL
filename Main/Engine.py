@@ -22,11 +22,14 @@ class Engine():
         badChars = '[\\\*\-\"\`\%\&()\[\]\'\.\,{}_@:;<>\?\!]'
         file = codecs.open(self.path,'r',encoding='iso-8859-1')
 
-        fullText = file.read().lower()
-        fullText = re.sub(badChars, ' ', fullText)
+        self.fullText = file.read()
+        fullText = re.sub(badChars, ' ', self.fullText.lower())
 
         self.tokens=nltk.word_tokenize(fullText)
         self.freqDist = FreqDist(nltk.Text(self.tokens))
+        
+    def getFullText(self):
+        return self.fullText
         
     def getWordCount(self):
         return self.tokens.__len__()
@@ -48,11 +51,11 @@ class Engine():
         c = nltk.ConcordanceIndex(self.tokens, key = lambda s: s.lower())
         contexts = []
         offsets = c.offsets(str(word))
-        
-        for line in range(0, lines):
-            left = ' '.join([self.tokens[offsets[line]-j] for j in reversed(range(1, wordsOnLeft+1))])
-            right = ' '.join([self.tokens[offsets[line]+j] for j in range(1, wordsOnRight+1)])
-            contexts.append(left + ' ' + self.tokens[offsets[line]] + ' ' + right)
+        if offsets != []:
+            for line in range(0, lines):
+                left = ' '.join([self.tokens[offsets[line]-j] for j in reversed(range(1, wordsOnLeft+1))])
+                right = ' '.join([self.tokens[offsets[line]+j] for j in range(1, wordsOnRight+1)])
+                contexts.append(left + ' ' + self.tokens[offsets[line]] + ' ' + right)
         return contexts
         #c.offsets("non")
         #print([self.tokens[offset+1] for offset in c.offsets('non')])
