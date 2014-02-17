@@ -1,3 +1,11 @@
 /Main/Engine.pyc
 
 /Main/MainWindow.pyc
+
+/.settings/org.eclipse.core.resources.prefs
+/Main/CustomWidgets.pyc
+/Main/LeastSquares.py
+/Main/MyPlainTextEdit.pyc
+/Main/MyTableItem.pyc
+/Main/Test.py
+/Main/pyqtgraphtest.py
