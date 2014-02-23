@@ -26,6 +26,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.show()
         self.ui.tabWidget.setEnabled(False)
         self.ui.loadBtn.setEnabled(False)
+        self.ui.zipfFrame.setEnabled(False)
         
     def connectSlots(self):
         self.connect(self.ui.browseBtn, QtCore.SIGNAL("clicked()"), self.onSelectFile)
@@ -33,7 +34,9 @@ class MainWindow(QtGui.QMainWindow):
         self.connect(self.ui.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.ui.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
         self.connect(self.ui.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
+        self.connect(self.ui.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
         self.connect(self.ui.previewBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
+        self.connect(self.ui.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
         self.connect(self.ui.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
         self.connect(self.ui.ignoreListForeignBtn, 
                      QtCore.SIGNAL("clicked()"),
@@ -60,13 +63,18 @@ class MainWindow(QtGui.QMainWindow):
             self.ui.encoding.setText(encoding)
             self.ui.wordCount.setText(str(self.engine.getWordCount()))
             self.ui.rawText.setPlainText(self.engine.getRawText())
+            self.ui.tokenizedText.setPlainText('\n'.join(self.engine.getSentences()))
             self.ui.avgLength.setText(str(self.engine.getAvgWordLength()))
             self.ui.lexicalDiversity.setText(str(self.engine.getLexicalDiversity()))
-            self.ui.ZipfTrend.setText( str( round(self.engine.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.engine.getPolyFit()[1], 3) ) )
-            self.ui.ZipfError.setText( str( round( self.engine.get_absZipfError(), 3 ) ) + '%')
             self.onRefreshForeignWords()
         else:
             self.ui.encoding.setText("not recognized!")
+        
+    def onComputeZipf(self):
+        self.ui.zipfFrame.setEnabled(True)
+        self.engine.computeZipf()
+        self.ui.ZipfTrend.setText( str( round(self.engine.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.engine.getPolyFit()[1], 3) ) )
+        self.ui.ZipfError.setText( str( round( self.engine.get_absZipfError(), 3 ) ) + '%')
         
     def onRefreshForeignWords(self):
         self.engine.findForeignWords()
@@ -179,6 +187,19 @@ class MainWindow(QtGui.QMainWindow):
                 self.showListDialog(contexts, title, "Context")
             else:
                 self.noMatchesWindow()
+           
+    def onFindPattern(self):
+        if self.ui.patternTxt.text() != "":
+            words = self.engine.findPattern(self.ui.patternTxt.text())
+            percentage = round(words.N()*100/float(self.engine.getWordCount()), 2)
+            self.ui.patternPercentage.setText(str(percentage))
+
+            if words != []:
+                title = str(words.N()) + ' words matching pattern \'' + self.ui.patternTxt.text() + '\''
+                self.showTableDialog(words.items(), title, ["Word", "Count"])
+            else:
+                self.noMatchesWindow()
+        
            
     def onZipfPlot(self):
         

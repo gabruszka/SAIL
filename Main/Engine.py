@@ -7,8 +7,10 @@ import re
 import numpy as np
 import math
 from nltk import FreqDist
+from nltk import punkt
 import nltk
 import codecs
+from operator import itemgetter
 
 class Engine():
     
@@ -23,6 +25,7 @@ class Engine():
         self.__polyFit = None
         self.__foreignWords = None
         self.__absZipfError = None
+        self.__sentences = None
         
     def get_freq_dist(self):
         return self.__freqDist
@@ -72,6 +75,9 @@ class Engine():
     def getTokens(self):
         return self.__tokens
         
+    def getSentences(self):
+        return self.__sentences
+        
     def getMostCommon(self, count):
         out = []
         i=0
@@ -94,28 +100,25 @@ class Engine():
     def loadCorpus(self):
         
         self.rawTokenized = False
-        badChars = '[\\\"\*\-\"\`\%\&()\[\]\'\.\,\{\}\d_@:;<>\?\!]'
+        #badChars = '[\\\*\-\"\`\%\&()\[\]\'\.\,\{\}\d_@:;<>\?\!]'
+        
         encodingList = ['utf8', 'iso-8859-1']
         
         for encoding in encodingList:
             
             try:
                 fileName = codecs.open(self.__path,'r',encoding=encoding)
-                self.__rawText = fileName.read()
-            
-                fullText = re.sub(badChars, ' ', self.__rawText.lower())
-        
-                self.__tokens=nltk.word_tokenize(fullText)
-                self.__freqDist = FreqDist(self.__tokens)
-                                
-                self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__freqDist.values())+1) ] )
-                self.__logfreqDist = np. array([math.log(i, 10) for i in self.__freqDist.values() ])
-                                
-                self.__polyFit = np.polyfit(self.__logx, self.__logfreqDist, 1)
                 
-                rel_error = sum([abs(self.__logfreqDist[i] - self.getPoly(self.__logx[i])) for i in self.__logx ])
-                print rel_error
-                self.__absZipfError = rel_error/float(sum([self.__logfreqDist[i] for i in self.__logx]))
+                self.__rawText = fileName.read()
+                purified = re.sub('[^a-zA-Z0-9\xE0\xE8\xEC\xF2\xF9\xE1\xE9\xED\xF3\xFA\,\.\?\!\(\)]', ' ', self.__rawText)
+                
+                sent_tokenizer=nltk.data.load('tokenizers/punkt/italian.pickle')
+                self.__sentences = sent_tokenizer.tokenize(purified.strip())
+                print self.__sentences[:2]
+                self.__tokens = nltk.word_tokenize(purified.lower())
+                
+                self.__freqDist = FreqDist(self.__tokens)
+
                 return encoding
             
             except UnicodeDecodeError:
@@ -126,21 +129,59 @@ class Engine():
                 
         return ""
     
+    #tokeny
+    def computeZipf(self):
+        self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__freqDist.values())+1) ] )
+        self.__logfreqDist = np. array([math.log(i, 10) for i in self.__freqDist.values() ])
+        self.__polyFit = np.polyfit(self.__logx, self.__logfreqDist, 1)
+        rel_error = sum([abs(self.__logfreqDist[i] - self.getPoly(self.__logx[i])) for i in self.__logx ])
+        self.__absZipfError = rel_error/float(sum([self.__logfreqDist[i] for i in self.__logx]))
+    
+    
+    #tokeny
+    def findBigrams(self):
+        
+        bigrams = dict()
+        allowed = {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', u'\xe0', u'\xe8', u'\xec', u'\xe9', u'\xf9', u'\xf2'}
+        for first in allowed:
+            for second in allowed:
+                bigrams[first+second] = 0
+                
+        for token in self.__tokens:
+            for i in range(len(token)-1):
+                bigram = token[i]+token[i+1]
+                bigrams[bigram] = bigrams[bigram] + 1;
+                    
+        self.__sortedBigrams = sorted(bigrams.items(), key=itemgetter(1))
+        
+        for i in range(len(self.__sortedBigrams)):
+            print str(i) + ' ' + self.__sortedBigrams[i][0].encode('iso-8859-1') + ' ' + str(self.__sortedBigrams[i][1])
+    
+    #tokeny
     def findForeignWords(self):
-        cond1 = re.compile('.*[xkwj].*')
+        cond1 = re.compile('.*[xkwjy].*')
         cond2 = re.compile('.*[qrtpsdfghlzcvbnm]$')
         self.__foreignWords = FreqDist([token  for token in self.__tokens if cond1.match(token) or (cond2.match(token) and token not in self.__allowed)])
+       # self.findBigrams()
         
         
+    # tokeny
+    def findPattern(self, pattern):
+        cond = re.compile(unicode(pattern))
+        return FreqDist([token  for token in self.__tokens if cond.match(token)])
+        
+        
+        
+    # zdania
     def findWordContext(self, word, lines=25, wordCount=2):
         
 #         if (not self.rawTokenized):
 #             self.rawTokenized = True
 #             self.rawTokens = nltk.word_tokenize(self.rawText)
         
-        c = nltk.ConcordanceIndex(self.tokens, key = lambda s: s.lower())
+        c = nltk.ConcordanceIndex(self.__tokens, key = lambda s: s.lower())
         contexts = []
-        offsets = c.offsets(str(word))
+        offsets = c.offsets(unicode(word))
   
         if offsets:
             lines = min(lines, len(offsets))
