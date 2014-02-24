@@ -1,0 +1,9 @@
+ART l il i un una
+PREP a ad di d su in da per con come senza contro sopra sotto dietro dentro fra tra fuori accanto dopo oltre attorno attraverso
+DPREP al alla ai agli alle all allo del della dei degli delle dell dello nel nella nei nelle negli nell nello dal dalla dalle dall dallo dagli sul sulla sui sulle sull sugli sullo
+CONJ e ed o se ma mentre oppure perché sebbene quantunque allorché perciò
+ADV poi qui già sempre mai adesso insieme ormai ogni allora più piu meno non molto tanto forse invece ancora anche pur così pure dove quando ieri oggi domani poi soprattutto almeno pertanto soltanto intanto comunque
+PUNCT . ? ! , ; : ( ) " - %
+PRON io mi me tu ti te lei lui si noi voi li c chi stesse cui quanto ciò ognuno ognuna ciascuno ciascuna quelli quelle
+ADJ ex mio mia mie miei tuo tua tue tuoi suo sua sue suoi nostro nostra nostri nostre vostro vostra vostri vostre altra altre altri alcuno alcuna alcuni alcune qualche qualunque
+NUM due tre quattro cinque sei sette otto nove dieci venti vent trenta trent

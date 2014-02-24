@@ -26,35 +26,51 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.show()
         self.ui.tabWidget.setEnabled(False)
         self.ui.loadBtn.setEnabled(False)
+        self.ui.POSloadBtn.setEnabled(False)
         self.ui.zipfFrame.setEnabled(False)
+        self.ui.tagPOSCorpusRadio.setEnabled(False)
         
     def connectSlots(self):
         self.connect(self.ui.browseBtn, QtCore.SIGNAL("clicked()"), self.onSelectFile)
         self.connect(self.ui.loadBtn, QtCore.SIGNAL("clicked()"), self.onLoadCorpus)
-        self.connect(self.ui.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
-        self.connect(self.ui.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
-        self.connect(self.ui.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
-        self.connect(self.ui.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
-        self.connect(self.ui.previewBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
-        self.connect(self.ui.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
-        self.connect(self.ui.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
-        self.connect(self.ui.ignoreListForeignBtn, 
-                     QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('foreign', self.engine.getAllowedForeignWordSet, self.engine.setAllowedForeignWordSet, self.onRefreshForeignWords))
         
+        
+        #Basic Data
+        self.connect(self.ui.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.ui.ignoreListCommonBtn, 
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onIgnoreList('foreign', self.engine.get_ignored_common, self.engine.set_ignored_common))
-         
+        self.connect(self.ui.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
+        self.connect(self.ui.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
+        
+        self.connect(self.ui.previewForeignBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
+        self.connect(self.ui.ignoreListForeignBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onIgnoreList('foreign', self.engine.getAllowedForeignWordSet, self.engine.setAllowedForeignWordSet, self.onRefreshForeignWords))
+        self.connect(self.ui.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
+        
+        
+        #POS tagging
+        self.connect(self.ui.POSbrowseBtn, QtCore.SIGNAL("clicked()"), self.onPOSbrowse)
+        self.connect(self.ui.POSloadBtn, QtCore.SIGNAL("clicked()"), self.onPOSload)
+        self.connect(self.ui.applyTaggerBtn, QtCore.SIGNAL("clicked()"), self.onApplyTagger)
+        #self.connect(self.ui.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
+        self.connect(self.ui.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTagging)
+        
+        #Custom Search
+        self.connect(self.ui.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
+        self.connect(self.ui.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
+        
     def onLoadCorpus(self):
         
         self.ui.wordCount.setText("")
         self.ui.tabWidget.setEnabled(False)
         self.ui.loadBtn.setEnabled(False)
         self.ui.rawText.setPlainText("")
+        self.ui.taggedWordCount.setText("")
+        self.ui.taggedPercentage.setText("")
         
-        self.engine.setPath(self.ui.corpusPath.text())
-        encoding = self.engine.loadCorpus()
+        encoding = self.engine.loadCorpus(self.ui.corpusPath.text())
         
         if encoding != "":
             self.ui.tabWidget.setEnabled(True)
@@ -63,12 +79,17 @@ class MainWindow(QtGui.QMainWindow):
             self.ui.encoding.setText(encoding)
             self.ui.wordCount.setText(str(self.engine.getWordCount()))
             self.ui.rawText.setPlainText(self.engine.getRawText())
-            self.ui.tokenizedText.setPlainText('\n'.join(self.engine.getSentences()))
-            self.ui.avgLength.setText(str(self.engine.getAvgWordLength()))
+            #self.ui.rawText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedTokens()]))
+            self.ui.avgWordLength.setText(str(self.engine.getAvgWordLength()))
+            self.ui.avgSentLength.setText(str(self.engine.getAvgSentLength()))
             self.ui.lexicalDiversity.setText(str(self.engine.getLexicalDiversity()))
             self.onRefreshForeignWords()
         else:
             self.ui.encoding.setText("not recognized!")
+        
+    def onSelectFile(self):
+        self.ui.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
+        self.ui.loadBtn.setEnabled(True)
         
     def onComputeZipf(self):
         self.ui.zipfFrame.setEnabled(True)
@@ -78,12 +99,8 @@ class MainWindow(QtGui.QMainWindow):
         
     def onRefreshForeignWords(self):
         self.engine.findForeignWords()
-        self.ui.foreignWordsCount.setText(str(self.engine.getForeignWords().N()))
+        self.ui.foreignWordsCount.setText(str(self.engine.getForeignWordsCount()))
         self.ui.foreignPercentage.setText(str(self.engine.getForeignPercentage()))
-        
-    def onSelectFile(self):
-        self.ui.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
-        self.ui.loadBtn.setEnabled(True)
         
     def onShow(self):
         dialog= QtGui.QDialog(self)
@@ -130,8 +147,7 @@ class MainWindow(QtGui.QMainWindow):
         layout.addWidget(tableView)
         dialog.setLayout(layout)
         dialog.show()
-        
-        
+
     def showListDialog(self, data, windowTitle, headerTitle):
         
         dialog= QtGui.QDialog(self)
@@ -164,8 +180,8 @@ class MainWindow(QtGui.QMainWindow):
     def onPreviewForeignWords(self):
     
         foreignWords = self.engine.getForeignWords()
-        title = str(foreignWords.N()) +' foreign words found'
-        self.showTableDialog(foreignWords.items(), title, ["Word", "Count"], self.onDeleteFromForeignSet)
+        title = str(self.engine.getForeignWordsCount()) +' foreign words found'
+        self.showTableDialog(foreignWords, title, ["Word", "Count"], self.onDeleteFromForeignSet)
         
     def onFindMostCommon(self):
         
@@ -191,16 +207,16 @@ class MainWindow(QtGui.QMainWindow):
     def onFindPattern(self):
         if self.ui.patternTxt.text() != "":
             words = self.engine.findPattern(self.ui.patternTxt.text())
-            percentage = round(words.N()*100/float(self.engine.getWordCount()), 2)
+            wordCount = sum([word[1] for word in words])
+            percentage = round(wordCount*100/float(self.engine.getWordCount()), 2)
             self.ui.patternPercentage.setText(str(percentage))
 
             if words != []:
-                title = str(words.N()) + ' words matching pattern \'' + self.ui.patternTxt.text() + '\''
-                self.showTableDialog(words.items(), title, ["Word", "Count"])
+                title = str(wordCount) + ' words matching pattern \'' + self.ui.patternTxt.text() + '\''
+                self.showTableDialog(words, title, ["Word", "Count"])
             else:
                 self.noMatchesWindow()
-        
-           
+            
     def onZipfPlot(self):
         
         pg.setConfigOptions(antialias=True)
@@ -263,4 +279,35 @@ class MainWindow(QtGui.QMainWindow):
         box.setMinimumHeight(300)
         box.setWindowTitle("No matches")
         box.exec_()
+        
+    def onPOSbrowse(self):
+        self.ui.POScorpusPath.setText(QtGui.QFileDialog.getOpenFileName())
+        self.ui.POSloadBtn.setEnabled(True)
+        
+    def onPOSload(self):
+        self.engine.loadPOSCorpus(self.ui.POScorpusPath.text())
+        self.ui.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedCorpus()]))
+        self.ui.tagPOSCorpusRadio.setEnabled(True)
+        
+    def onApplyTagger(self):
+        taggers = []
+        if self.ui.manualTaggerChk.checkState():
+            taggers.append('manual')
+        if self.ui.regExTaggerChk.checkState():
+            taggers.append('regex')
+        if self.ui.syntaxTaggerChk.checkState():
+            taggers.append('syntax')
+        if self.ui.probabilityTaggerChk.checkState():
+            taggers.append('probability')
+            
+        if taggers != []:
+            self.engine.applyTaggers(taggers, self.ui.tagPOSCorpusRadio.isChecked())
+            self.ui.taggedWordCount.setText(str(self.engine.getTagCount()))
+            percentage = round(self.engine.getTagCount()*100/float(self.engine.getTaggedTokensCount()), 2)
+            self.ui.taggedPercentage.setText(str(percentage))
+        
+    def onPreviewTagging(self):
+        self.ui.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedTokens()]))
+        
+        
         
