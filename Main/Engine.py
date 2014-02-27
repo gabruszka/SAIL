@@ -57,7 +57,15 @@ class Engine():
     
     def __init__(self ):
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
-        
+        self.__letters = {'q', 'w', 'e', 'r', 't', 'y', 
+                          'u', 'i', 'o', 'p', 'a', 's', 
+                          'd', 'f', 'g', 'h', 'j', 'k', 
+                          'l', 'z', 'x', 'c', 'v', 'b', 
+                          'n', 'm', 
+                          u'\xe0', u'\xe1', u'\xe8', u'\xe9', u'\xec', u'\xed', 
+                          u'\xf2', u'\xf3', u'\xf9', u'\xfa'
+                          }
+            
         self.__encodings = ['utf8', 'iso-8859-1']
         self.__tokens = []
         self.__ignoredCommon = set([])
@@ -67,7 +75,7 @@ class Engine():
         self.__logx = []
         self.__logfreqDist = []
         self.__polyFit = None
-        self.__absZipfError = None
+        self.__relZipfError = None
         
         #foreign
         self.__allowed = set(open(path + 'allowed.txt').read().split())
@@ -78,17 +86,24 @@ class Engine():
         self.__taggedCorpus = []
         self.__taggedTokens = []
         self.__tagCount = 0
+        self.__tagErrorCount = 0
+        self.__wrongTags = []
 
-        self.__regexRules = set(open(path + 'regexTagsRules.txt').readlines())
+        self.__regexTagRules = dict()
+        for line in set(codecs.open(path + 'regexTagsRules.txt', encoding='utf-8').readlines()):
+            if len(line)>4 and  line[0]!= '#':
+                words = line.split()
+                self.__regexTagRules[re.compile(unicode(words[0]))] = (words[1], words[2:])
+        
         self.__customTags = dict()
         for line in codecs.open(path + 'customTags.txt', encoding='utf-8').readlines():
             words = line.split()
             self.__customTags[words[0]] = set(words[1:])
+            
+            
         self.__syntaxRules = []
-        
         self.__defaultTag = ''
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
-        
         
     def getTokens(self):
         return self.__tokens
@@ -102,11 +117,14 @@ class Engine():
     def getTagCount(self):
         return self.__tagCount
     
+    def getTagErrorCount(self):
+        return self.__tagErrorCount
+    
     def getTaggedCorpus(self):
         return self.__taggedCorpus
         
-    def get_absZipfError(self):
-        return self.__absZipfError
+    def get_relZipfError(self):
+        return self.__relZipfError
 
     def get_logfreqDist(self):
         return self.__logfreqDist
@@ -147,6 +165,9 @@ class Engine():
     def getWordCount(self):
         return self.__wordCount
         
+    def getWordTypesCount(self):
+        return len(self.__freqDist.items())
+        
     def getMostCommon(self, count):
         out = []
         i=0
@@ -158,6 +179,12 @@ class Engine():
     
     def getHapaxes(self):
         return self.__freqDist.hapaxes()
+    
+    def getHapaxCount(self):
+        return len(self.__freqDist.hapaxes())
+    
+    def getHapaxPercentage(self):
+        return round(len(self.__freqDist.hapaxes())*100/float(len(self.__freqDist.items())), 2)
     
     def getAvgWordLength(self):
         return self.__avgWordLength
@@ -182,7 +209,7 @@ class Engine():
                 punkt_param = PunktParameters()
                 punkt_param.abbrev_types = set(['dr', 'vs', 'n', 'v', 'etc', 'art', 'p', 'Cost', 'ss', 'pag'])
                 sentence_splitter = PunktSentenceTokenizer(punkt_param)
-                text = re.sub('[\'\<\>]', ' ', self.__rawText)
+                text = re.sub('[\'\<\>`]', ' ', self.__rawText)
                 sentences = sentence_splitter.tokenize(text)
                 
                 tokenizer = RegexpTokenizer('[a-zA-Z0-9\xE0\xE8\xEC\xF2\xF9\xE1\xE9\xED\xF3\xFA]+')
@@ -194,13 +221,10 @@ class Engine():
                 purified = re.sub('[^a-zA-Z\xE0\xE8\xEC\xF2\xF9\xE1\xE9\xED\xF3\xFA]', ' ', self.__rawText)
                 tokens = nltk.word_tokenize(purified.lower())
                 self.__freqDist = FreqDist(tokens)
-
                 self.__wordCount = len(tokens)
                 self.__lexicalDiversity = round(len(tokens)/float(len(self.__freqDist.items())), 3)
                 self.__avgWordLength = round(sum([len(token) for token in tokens])/float(len(tokens)), 3)
-                
-                self.resetTags()
-                
+                                
                 return encoding
             
             except UnicodeDecodeError:
@@ -220,10 +244,13 @@ class Engine():
                 POScorpus = []
                 for line in file.readlines():
                     words = line.split()
-                    if words[1] in {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT'}:
-                        POScorpus.append((words[0], words[1]))
+                    if len(words) > 1:
+                        if words[1] in {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}:
+                            POScorpus.append((words[0], words[1]))
+                        else:
+                            print 'Unknown tag!: ' + words[1]
                     else:
-                        print 'Unknown tag!: ' + words[1]
+                        print line
                 break
             except UnicodeDecodeError:
                 print 'UnicodeDecodeError'
@@ -231,33 +258,62 @@ class Engine():
             except UnicodeEncodeError:
                 print 'UnicodeEncodeError'
                 
+                
+                
         self.__taggedCorpus = POScorpus
         
-    def computeZipf(self):
-        self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__freqDist.values())+1) ] )
-        self.__logfreqDist = np. array([math.log(i, 10) for i in self.__freqDist.values() ])
-        self.__polyFit = np.polyfit(self.__logx, self.__logfreqDist, 1)
-        rel_error = sum([abs(self.__logfreqDist[i] - self.getPoly(self.__logx[i])) for i in self.__logx ])
-        self.__absZipfError = rel_error/float(sum([self.__logfreqDist[i] for i in self.__logx]))
+    def computeZipf(self, input):
         
-    def findBigrams(self):
+        if input == 'word':
+            self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__freqDist.values())+1) ] )
+            self.__logfreqDist = np. array([math.log(i, 10) for i in self.__freqDist.values() ])
         
-        bigrams = dict()
-        allowed = {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', u'\xe0', u'\xe8', u'\xec', u'\xe9', u'\xf9', u'\xf2'}
-        for first in allowed:
-            for second in allowed:
-                bigrams[first+second] = 0
+        if input == 'bigram':
+            
+            bigramFreqDist = dict()
+            for first in self.__letters:
+                for second in self.__letters:
+                    bigramFreqDist[first+second] = 0
+            
+            for token in self.__freqDist.items():
+                for ii in range(len(token[0])-1):
+                    try:
+                        bigram = token[0][ii]+token[0][ii+1]
+                        bigramFreqDist[bigram] += token[1]
+                    except KeyError:
+                        print token
+                        
+            
+            self.__sortedBigrams = sorted([x for x in bigramFreqDist.items() if x[1]>0], key=itemgetter(1))
+            self.__sortedBigrams.reverse()
+            self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__sortedBigrams)+1) ] )
+            self.__logfreqDist = np. array([math.log(i[1], 10) for i in self.__sortedBigrams])
+            
+        if input == 'letter':
+
+            letterFreqDist = dict()
+            for letter in self.__letters:
+                    letterFreqDist[letter] = 0
                 
-        for token in self.__tokens:
-            for i in range(len(token)-1):
-                bigram = token[i]+token[i+1]
-                bigrams[bigram] = bigrams[bigram] + 1;
-                    
-        self.__sortedBigrams = sorted(bigrams.items(), key=itemgetter(1))
+            for token in self.__freqDist.items():
+                for ii in range(len(token[0])):
+                    letter = token[0][ii]
+                    letterFreqDist[letter] += token[1]
+            
+            self.__sortedLetters = sorted([x for x in letterFreqDist.items() if x[1]>0], key=itemgetter(1))
+            self.__sortedLetters.reverse()
+            self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__sortedLetters)+1) ] )
+            self.__logfreqDist = np. array([math.log(i[1], 10) for i in self.__sortedLetters])
         
-        for i in range(len(self.__sortedBigrams)):
-            print str(i) + ' ' + self.__sortedBigrams[i][0].encode('iso-8859-1') + ' ' + str(self.__sortedBigrams[i][1])
-    
+        self.__polyFit = np.polyfit(self.__logx, self.__logfreqDist, 1)
+        
+        poweredPoly = [np.power(10, self.getPoly( self.__logx[i] ) ) for i in  range(len(self.__logx))]
+        
+        relativeErrors = [ abs( self.__freqDist.values()[i] - poweredPoly[i] )
+                                        / float( self.__freqDist.values()[i] ) for i in  range(len(self.__logx)) ]
+        
+        self.__relZipfError = np.mean( relativeErrors ) * 100
+        
     def findForeignWords(self):
         
         cond1 = re.compile('.*[xkwjy].*')
@@ -270,7 +326,6 @@ class Engine():
         cond = re.compile(unicode(pattern))
         return [item for item in self.__freqDist.items() if cond.match(item[0])]        
         
-    # zdania
     def findWordContext(self, word, lines=25, wordCount=2):
         
         contexts = []
@@ -289,40 +344,85 @@ class Engine():
 
     def applyTaggers(self, taggers, fromPOSCorpus = False):
         
-        if len(self.__taggedTokens) == 0:
-            self.resetTags(fromPOSCorpus)
+        self.resetTags(fromPOSCorpus)
             
         for tagger in taggers:
             if tagger == 'manual':
                 self.applyManualTagger()
+            if tagger == 'regex':
+                self.applyRegexTagger()
                 
         tagCount = 0
-        notTagged=[]
-        for token in self.__taggedTokens:
-            if token[1]!=self.__defaultTag:
-                tagCount+=1
-            else:
-                notTagged.append(token[0])
-                
-        for token in FreqDist(notTagged).items():
-            print token[0].encode('utf-8') + ' '+ str(token[1])
-            
-        self.__tagCount = tagCount
-        
-    def resetTags(self, fromPOSCorpus=False):
+        notTagged = []
+        self.__wrongTags = []
         if fromPOSCorpus:
-            self.__taggedTokens = self.__defTagger([token[0] for token in self.__taggedCorpus])
+            errorCount = 0
+            wrongTags = []
+            for i  in range(len(self.__taggedTokens)):
+                if self.__taggedTokens[i][1]!=self.__defaultTag:
+                    tagCount+=1
+                    if self.__taggedTokens[i][1] != self.__taggedCorpus[i][1]:
+                        errorCount+=1
+                        wrongTags.append((i, self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]))
+                        self.__wrongTags.append(self.__taggedTokens[i][0])
+                else:
+                    notTagged.append(self.__taggedTokens[i][0])
+                    
+            for token in wrongTags:
+                print token
+            
+            self.__tagErrorCount = errorCount
+                   
+        else:
+            for token in self.__taggedTokens:
+                if token[1]!=self.__defaultTag:
+                    tagCount+=1
+                else:
+                    notTagged.append(token[0])
+        #for token in FreqDist(notTagged).items():
+        #    print token
+        
+        self.__tagCount = tagCount
+            
+    def resetTags(self, fromPOSCorpus):
+        if fromPOSCorpus:
+            self.__taggedTokens = self.__defTagger.tag([token[0] for token in self.__taggedCorpus])
         else:
             self.__taggedTokens = self.__defTagger.tag(self.__tokens)
 
     def applyManualTagger(self):
                 
         for i in range(len(self.__taggedTokens)):
-            for tag in self.__customTags:
-                if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
-                    self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
+            if self.__taggedTokens[i][1] == self.__defaultTag:
+                for tag in self.__customTags:
+                    if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
+                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
 
-
+    def applyRegexTagger(self):
+        
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        self.__regexTagRules = dict()
+        for line in set(codecs.open(path + 'regexTagsRules.txt', encoding='utf-8').readlines()):
+            if len(line)>4 and  line[0]!= '#':
+                words = line.split()
+                self.__regexTagRules[re.compile(unicode(words[0]))] = (words[1], words[2:])
+                print words[0].encode('utf-8')
+                print words[1], words[2:]
+        
+        
+        
+        
+        
+        for i in range(len(self.__taggedTokens)):
+            if self.__taggedTokens[i][1] == self.__defaultTag:
+                for rule in self.__regexTagRules:
+                    if self.__taggedTokens[i][1] == self.__defaultTag:
+                        word = self.__taggedTokens[i][0].lower()
+                        if word not in self.__regexTagRules[rule][1] and rule.match(word):
+                            self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__regexTagRules[rule][0])
+                        #if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
+                        #    self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
+        
 
 
 

@@ -66,7 +66,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.wordCount.setText("")
         self.ui.tabWidget.setEnabled(False)
         self.ui.loadBtn.setEnabled(False)
-        self.ui.rawText.setPlainText("")
+        self.ui.corpusText.setPlainText("")
         self.ui.taggedWordCount.setText("")
         self.ui.taggedPercentage.setText("")
         
@@ -78,11 +78,16 @@ class MainWindow(QtGui.QMainWindow):
             
             self.ui.encoding.setText(encoding)
             self.ui.wordCount.setText(str(self.engine.getWordCount()))
-            self.ui.rawText.setPlainText(self.engine.getRawText())
+            self.ui.corpusText.setPlainText(self.engine.getRawText())
             #self.ui.rawText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedTokens()]))
             self.ui.avgWordLength.setText(str(self.engine.getAvgWordLength()))
             self.ui.avgSentLength.setText(str(self.engine.getAvgSentLength()))
             self.ui.lexicalDiversity.setText(str(self.engine.getLexicalDiversity()))
+            
+            self.ui.wordTypesCount.setText(str(self.engine.getWordTypesCount()))
+            self.ui.hapaxCount.setText(str(self.engine.getHapaxCount()))
+            self.ui.hapaxPercentage.setText(str(self.engine.getHapaxPercentage()))
+            
             self.onRefreshForeignWords()
         else:
             self.ui.encoding.setText("not recognized!")
@@ -91,29 +96,10 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
         self.ui.loadBtn.setEnabled(True)
         
-    def onComputeZipf(self):
-        self.ui.zipfFrame.setEnabled(True)
-        self.engine.computeZipf()
-        self.ui.ZipfTrend.setText( str( round(self.engine.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.engine.getPolyFit()[1], 3) ) )
-        self.ui.ZipfError.setText( str( round( self.engine.get_absZipfError(), 3 ) ) + '%')
-        
     def onRefreshForeignWords(self):
         self.engine.findForeignWords()
         self.ui.foreignWordsCount.setText(str(self.engine.getForeignWordsCount()))
         self.ui.foreignPercentage.setText(str(self.engine.getForeignPercentage()))
-        
-    def onShow(self):
-        dialog= QtGui.QDialog(self)
-        dialog.setMinimumHeight(300)
-        dialog.setWindowTitle("Corpus Text")
-        
-        plainText = QtGui.QPlainTextEdit()
-        plainText.setPlainText(self.engine.getFullText())
-        
-        layout = QtGui.QHBoxLayout(dialog)
-        layout.addWidget(plainText)
-        dialog.setLayout(layout)
-        dialog.show()
         
     def showTableDialog(self, data, windowTitle, headerList, onDeleteFromSet=None):
         
@@ -128,7 +114,6 @@ class MainWindow(QtGui.QMainWindow):
         else:
             tableView = MyTableView(dialog)
             
-        
         model = QtGui.QStandardItemModel(tableView)
         
         for row in range(len(data)):
@@ -217,6 +202,20 @@ class MainWindow(QtGui.QMainWindow):
             else:
                 self.noMatchesWindow()
             
+    def onComputeZipf(self):
+        self.ui.zipfFrame.setEnabled(True)
+        input = ''
+        if self.ui.wordZipfRadio.isChecked():
+            input='word'
+        if self.ui.bigramZipfRadio.isChecked():
+            input='bigram'
+        if self.ui.letterZipfRadio.isChecked():
+            input='letter'
+        
+        self.engine.computeZipf(input)
+        self.ui.ZipfTrend.setText( str( round(self.engine.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.engine.getPolyFit()[1], 3) ) )
+        self.ui.ZipfError.setText( str( round( self.engine.get_relZipfError(), 3 ) ) )
+        
     def onZipfPlot(self):
         
         pg.setConfigOptions(antialias=True)
@@ -225,20 +224,20 @@ class MainWindow(QtGui.QMainWindow):
         
         logx = self.engine.get_logx()
         ab = self.engine.getPolyFit()
-        s4 = ScatterPlotItem(logx, self.engine.get_logfreqDist(), size=4, pen=None, brush=pg.mkBrush(255, 255, 255))
-        s4.addPoints(logx, self.engine.get_logfreqDist())
-        p1 = plotWidget.plot(logx, [self.engine.getPoly(x) for x in logx],  pen=(255,0,0), size=3)
+        s = ScatterPlotItem(logx, self.engine.get_logfreqDist(), size=4, pen=None, brush=pg.mkBrush(255, 255, 255))
+        s.addPoints(logx, self.engine.get_logfreqDist())
+        plot = plotWidget.plot(logx, [self.engine.getPoly(x) for x in logx],  pen=(255,0,0), size=3)
         
-        l = LegendItem((130,60), offset=(500,30))
-        l.setParentItem(plotWidget.getPlotItem())
-        l.addItem(s4, 'Corpus data')
-        l.addItem(p1, str(round(ab[0], 3)) + 'x + ' +str(round(ab[1], 3)))
+        legend = LegendItem((130,60), offset=(500,30))
+        legend.setParentItem(plotWidget.getPlotItem())
+        legend.addItem(s, 'Corpus data')
+        legend.addItem(plot, str(round(ab[0], 3)) + 'x + ' +str(round(ab[1], 3)))
         
-        plotWidget.addItem(s4)
-        l = QtGui.QVBoxLayout()
-        l.addWidget(plotWidget)
+        plotWidget.addItem(s)
+        lay = QtGui.QVBoxLayout()
+        lay.addWidget(plotWidget)
         
-        dialog.setLayout(l)
+        dialog.setLayout(lay)
         dialog.show()
                 
     def onIgnoreList(self, title, getter, setter, func=None):
@@ -286,7 +285,7 @@ class MainWindow(QtGui.QMainWindow):
         
     def onPOSload(self):
         self.engine.loadPOSCorpus(self.ui.POScorpusPath.text())
-        self.ui.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedCorpus()]))
+        self.ui.corpusText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedCorpus()]))
         self.ui.tagPOSCorpusRadio.setEnabled(True)
         
     def onApplyTagger(self):
@@ -302,12 +301,26 @@ class MainWindow(QtGui.QMainWindow):
             
         if taggers != []:
             self.engine.applyTaggers(taggers, self.ui.tagPOSCorpusRadio.isChecked())
+            
             self.ui.taggedWordCount.setText(str(self.engine.getTagCount()))
             percentage = round(self.engine.getTagCount()*100/float(self.engine.getTaggedTokensCount()), 2)
             self.ui.taggedPercentage.setText(str(percentage))
-        
+            
+            if self.ui.tagPOSCorpusRadio.isChecked():
+                self.ui.wrongTagsCount.setText(str(self.engine.getTagErrorCount()))
+                percentage = 0 if self.engine.getTagCount() == 0 else round(self.engine.getTagErrorCount()*100/float(self.engine.getTagCount()), 2)
+                self.ui.wrongTagsPercentage.setText(str(percentage))
+            else:
+                self.ui.wrongTagsCount.setText("")
+                self.ui.wrongTagsPercentage.setText("")
+                
     def onPreviewTagging(self):
         self.ui.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.engine.getTaggedTokens()]))
+        
+        
+        
+        
+        
         
         
         

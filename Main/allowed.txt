@@ -70,3 +70,6 @@ press
 ed
 tutt
 sant
+maggior
+peggior
+miglior
