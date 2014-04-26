@@ -53,10 +53,9 @@ def customWordtokenize(text):
         return text.split()
 
 
-class Engine():
+class Model():
     
     def __init__(self ):
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.__letters = {'q', 'w', 'e', 'r', 't', 'y', 
                           'u', 'i', 'o', 'p', 'a', 's', 
                           'd', 'f', 'g', 'h', 'j', 'k', 
@@ -67,43 +66,41 @@ class Engine():
                           }
             
         self.__encodings = ['utf8', 'iso-8859-1']
-        self.__tokens = []
-        self.__ignoredCommon = set([])
-        self.__freqDist = None
         
-        #Zipf
-        self.__logx = []
-        self.__logfreqDist = []
-        self.__polyFit = None
-        self.__relZipfError = None
-        
-        #foreign
-        self.__allowed = set(open(path + 'allowed.txt').read().split())
-        self.__foreignWords = None
-        self.__foreignWordsCount = 0
-        
-        #POS tagging
-        self.__taggedCorpus = []
-        self.__taggedTokens = []
-        self.__tagCount = 0
-        self.__tagErrorCount = 0
-        self.__wrongTags = []
-
-        self.__regexTagRules = dict()
-        for line in set(codecs.open(path + 'regexTagsRules.txt', encoding='utf-8').readlines()):
-            if len(line)>4 and  line[0]!= '#':
-                words = line.split()
-                self.__regexTagRules[re.compile(unicode(words[0]))] = (words[1], words[2:])
-        
-        self.__customTags = dict()
-        for line in codecs.open(path + 'customTags.txt', encoding='utf-8').readlines():
-            words = line.split()
-            self.__customTags[words[0]] = set(words[1:])
-            
-            
-        self.__syntaxRules = []
         self.__defaultTag = ''
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
+        
+    def initFields(self):
+        
+#         self.__tokens = []
+#         self.__freqDist = None
+        
+        #Zipf
+#         self.__logx = []
+#         self.__logfreqDist = []
+#         self.__polyFit = None
+#         self.__relZipfError = None
+        
+        #foreign
+#         self.__foreignWords = None
+#         self.__foreignWordsCount = 0
+        
+        #POS tagging
+#         self.__taggedCorpus = []
+#         self.__taggedTokens = []
+#         self.__tagCount = 0
+#         self.__tagErrorCount = 0
+#         self.__wrongTags = []
+
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        self.__allowedForeign = set(open(path + 'allowedForeign.txt').read().split())
+        self.__ignoredCommon = set([])
+        self.__ignoredColl = set(open(path + 'ignoredColl.txt').read().split())
+        self.__concordanceIndex = None
+        #self.__syntaxRules = []
+        
+    def getWords(self):
+        return self.__words
         
     def getTokens(self):
         return self.__tokens
@@ -145,10 +142,10 @@ class Engine():
         self.__ignoredCommon = value
 
     def setAllowedForeignWordSet(self, newSet):
-        self.__allowed = newSet
+        self.__allowedForeign = newSet
             
     def getAllowedForeignWordSet(self):
-        return self.__allowed
+        return self.__allowedForeign
         
     def getForeignWords(self):
         return self.__foreignWords
@@ -197,43 +194,49 @@ class Engine():
         
     def loadCorpus(self, path):
         
-        self.rawTokenized = False
         #badChars = '[\\\*\-\"\`\%\&()\[\]\'\.\,\{\}\d_@:;<>\?\!]'
-        
+
         for encoding in self.__encodings:
-            
+
             try:
-                fileName = codecs.open(path,'r',encoding=encoding)
+                self.__path = path
+                fileName = codecs.open( self.__path,'r', encoding=encoding )
                 self.__rawText = fileName.read()
-                
-                punkt_param = PunktParameters()
-                punkt_param.abbrev_types = set(['dr', 'vs', 'n', 'v', 'etc', 'art', 'p', 'Cost', 'ss', 'pag'])
-                sentence_splitter = PunktSentenceTokenizer(punkt_param)
-                text = re.sub('[\'\<\>`]', ' ', self.__rawText)
-                sentences = sentence_splitter.tokenize(text)
-                
-                tokenizer = RegexpTokenizer('[a-zA-Z0-9\xE0\xE8\xEC\xF2\xF9\xE1\xE9\xED\xF3\xFA]+')
-                self.__avgSentLength = round(sum([len(tokenizer.tokenize(sent)) for sent in sentences if len(tokenizer.tokenize(sent)) > 0])/float(len(sentences)), 3)
-                self.__tokens = list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))
-                self.__concordanceIndex = nltk.ConcordanceIndex([token for token in self.__tokens])
-                
-                #TOKENS
-                purified = re.sub('[^a-zA-Z\xE0\xE8\xEC\xF2\xF9\xE1\xE9\xED\xF3\xFA]', ' ', self.__rawText)
-                tokens = nltk.word_tokenize(purified.lower())
-                self.__freqDist = FreqDist(tokens)
-                self.__wordCount = len(tokens)
-                self.__lexicalDiversity = round(len(tokens)/float(len(self.__freqDist.items())), 3)
-                self.__avgWordLength = round(sum([len(token) for token in tokens])/float(len(tokens)), 3)
-                                
-                return encoding
+                break
             
             except UnicodeDecodeError:
                 print 'UnicodeDecodeError'
+                encoding = ''
+                continue
                  
-            except UnicodeEncodeError:
-                print 'UnicodeEncodeError'
-                
-        return ""
+        if encoding!='':
+            self.initFields()
+            
+            
+            #SENTENCES
+            punkt_param = PunktParameters()
+            punkt_param.abbrev_types = set(['dr', 'vs', 'n', 'v', 'etc', 'art', 'p', 'Cost', 'ss', 'pag'])
+            sentence_splitter = PunktSentenceTokenizer(punkt_param)
+            text = re.sub('[\'\<\>`]', ' ', self.__rawText)
+            #text = re.sub('(\d+)', r' \1 ', text)
+            sentences = sentence_splitter.tokenize(text)
+            
+            #TOKENS
+            self.__tokens = list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))
+            
+            wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
+            #wordTokenizer = RegexpTokenizer('\W+', re.UNICODE)
+            sentences = [wordTokenizer.tokenize(sent.lower()) for sent in sentences if len(wordTokenizer.tokenize(sent)) > 0]
+            words =  list(itertools.chain(*sentences))
+            #self.__words = words
+            
+            self.__avgSentLength = round(np.mean( [len(sent) for sent in sentences]), 3)
+            self.__avgWordLength = round(np.mean( [len(word) for word in words]), 3)
+            self.__freqDist = FreqDist(words)
+            self.__wordCount = len(words)
+            self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 3)
+                 
+        return encoding
     
     def loadPOSCorpus(self, path):
         
@@ -318,7 +321,7 @@ class Engine():
         
         cond1 = re.compile('.*[xkwjy].*')
         cond2 = re.compile('.*[qrtpsdfghlzcvbnm]$')
-        self.__foreignWords = [item for item in self.__freqDist.items() if cond1.match(item[0]) or (cond2.match(item[0]) and item[0] not in self.__allowed)]
+        self.__foreignWords = [item for item in self.__freqDist.items() if cond1.match(item[0]) or (cond2.match(item[0]) and item[0] not in self.__allowedForeign)]
         self.__foreignWordsCount = sum([word[1] for word in self.__foreignWords])
 
     def findPattern(self, pattern):
@@ -328,6 +331,9 @@ class Engine():
         
     def findWordContext(self, word, lines=25, wordCount=2):
         
+        if not self.__concordanceIndex:
+            self.__concordanceIndex = nltk.ConcordanceIndex([token for token in self.__tokens])
+            
         contexts = []
         offsets = self.__concordanceIndex.offsets(unicode(word))
   
@@ -392,6 +398,12 @@ class Engine():
 
     def applyManualTagger(self):
                 
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        self.__customTags = dict()
+        for line in codecs.open(path + 'customTags.txt', encoding='utf-8').readlines():
+            words = line.split()
+            self.__customTags[words[0]] = set(words[1:])
+            
         for i in range(len(self.__taggedTokens)):
             if self.__taggedTokens[i][1] == self.__defaultTag:
                 for tag in self.__customTags:
@@ -406,11 +418,6 @@ class Engine():
             if len(line)>4 and  line[0]!= '#':
                 words = line.split()
                 self.__regexTagRules[re.compile(unicode(words[0]))] = (words[1], words[2:])
-                print words[0].encode('utf-8')
-                print words[1], words[2:]
-        
-        
-        
         
         
         for i in range(len(self.__taggedTokens)):
@@ -423,6 +430,33 @@ class Engine():
                         #if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
                         #    self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
         
-
-
-
+    def findCollocations(self):
+        self.__collWords = []
+        allowed = re.compile('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
+        special = re.compile('[&\"\*\+%\-/\.\,\?\:;\(\)!]+')
+        
+        for token in self.__tokens:
+            #if token.lower() not in self.__ignoredColl and allowed.match(token):
+            token = token.lower()
+            if not special.match(token):
+                self.__collWords.append(token)
+        
+        
+        
+        collocations = []
+        for i in range(len(self.__collWords)-1):
+            collocations.append((self.__collWords[i], self.__collWords[i+1]))
+        
+        
+        
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
+        output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 
+        self.__collFreqDist = FreqDist(collocations)
+        for item in self.__collFreqDist.items():
+            if item[1]>2:
+                output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
+            
+        output.close()
+            
+        
+            

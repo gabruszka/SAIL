@@ -1,15 +1,15 @@
 import sys
 #from nltk.corpus import PlaintextCorpusReader
 from PyQt4 import QtGui
-from MainWindow import MainWindow
-from Engine import Engine
+from Presenter import Presenter
+from Model import Model
 
 def main():
      
     app = QtGui.QApplication(sys.argv)
-    engine = Engine()
+    model = Model()
  
-    win = MainWindow(engine)
+    win = Presenter(model)
     app.exec_()
  
  
