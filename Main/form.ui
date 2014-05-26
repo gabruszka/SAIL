@@ -72,7 +72,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideMiddle</enum>
@@ -397,7 +397,7 @@
         <rect>
          <x>10</x>
          <y>20</y>
-         <width>82</width>
+         <width>51</width>
          <height>17</height>
         </rect>
        </property>
@@ -413,7 +413,7 @@
         <rect>
          <x>10</x>
          <y>45</y>
-         <width>82</width>
+         <width>61</width>
          <height>17</height>
         </rect>
        </property>
@@ -434,24 +434,11 @@
         <string>Letter</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="bigramFreqDistBtn">
+      <widget class="QPushButton" name="showFreqDistBtn">
        <property name="geometry">
         <rect>
-         <x>90</x>
-         <y>40</y>
-         <width>151</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Show Frequency Distribution</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="findMostCommonBtn_3">
-       <property name="geometry">
-        <rect>
-         <x>90</x>
-         <y>70</y>
+         <x>100</x>
+         <y>100</y>
          <width>151</width>
          <height>23</height>
         </rect>

@@ -49,7 +49,15 @@ class Presenter(QtGui.QMainWindow):
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onIgnoreList('foreign', self.model.getAllowedForeignWordSet, self.model.setAllowedForeignWordSet, self.onRefreshForeignWords))
         self.connect(self.view.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
-        
+        self.connect(self.view.wordZipfRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.showFreqDistBtn.setEnabled(False))
+        self.connect(self.view.bigramZipfRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.showFreqDistBtn.setEnabled(True))
+        self.connect(self.view.letterZipfRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.showFreqDistBtn.setEnabled(True))
         
         #POS tagging
         self.connect(self.view.POSbrowseBtn, QtCore.SIGNAL("clicked()"), self.onPOSbrowse)
@@ -80,6 +88,7 @@ class Presenter(QtGui.QMainWindow):
         if encoding != "":
             self.view.tabWidget.setEnabled(True)
             self.view.loadBtn.setEnabled(False)
+            self.view.showFreqDistBtn.setEnabled(False)
             
             self.view.encoding.setText(encoding)
             self.view.wordCount.setText(str(self.model.getWordCount()))
