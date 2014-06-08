@@ -32,23 +32,20 @@ class Presenter(QtGui.QMainWindow):
         self.view.tagPOSCorpusRadio.setEnabled(False)
         
     def connectSlots(self):
+        
         self.connect(self.view.browseBtn, QtCore.SIGNAL("clicked()"), self.onSelectFile)
         self.connect(self.view.loadBtn, QtCore.SIGNAL("clicked()"), self.onLoadCorpus)
         
-        
-        #Basic Data
+        #Frequency
         self.connect(self.view.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.view.ignoreListCommonBtn, 
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onIgnoreList('foreign', self.model.get_ignored_common, self.model.set_ignored_common))
+        
         self.connect(self.view.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
         self.connect(self.view.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
-        
-        self.connect(self.view.previewForeignBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
-        self.connect(self.view.ignoreListForeignBtn, 
-                     QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('foreign', self.model.getAllowedForeignWordSet, self.model.setAllowedForeignWordSet, self.onRefreshForeignWords))
         self.connect(self.view.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
+        self.connect(self.view.showFreqDistBtn, QtCore.SIGNAL("clicked()"), self.onShowFreqDist)
         self.connect(self.view.wordZipfRadio, 
                      QtCore.SIGNAL("toggled(bool)"), 
                      lambda: self.view.showFreqDistBtn.setEnabled(False))
@@ -59,6 +56,17 @@ class Presenter(QtGui.QMainWindow):
                      QtCore.SIGNAL("toggled(bool)"), 
                      lambda: self.view.showFreqDistBtn.setEnabled(True))
         
+        
+        #Patterns
+        self.connect(self.view.ignoreListForeignBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onIgnoreList('foreign', self.model.getAllowedForeignWordSet, self.model.setAllowedForeignWordSet))
+        self.connect(self.view.findForeignBtn, QtCore.SIGNAL("clicked()"), self.onFindForeignWords)
+        self.connect(self.view.previewForeignBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
+
+        self.connect(self.view.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
+        self.connect(self.view.previewPatternBtn, QtCore.SIGNAL("clicked()"), self.onPreviewPatternWords)
+        
         #POS tagging
         self.connect(self.view.POSbrowseBtn, QtCore.SIGNAL("clicked()"), self.onPOSbrowse)
         self.connect(self.view.POSloadBtn, QtCore.SIGNAL("clicked()"), self.onPOSload)
@@ -66,13 +74,12 @@ class Presenter(QtGui.QMainWindow):
         #self.connect(self.view.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
         self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTagging)
         
-        #Custom Search
-        self.connect(self.view.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
-        self.connect(self.view.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
         
         #Collocations
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
         #self.connect(self.view.showCollBtn, QtCore.SIGNAL("clicked()"), self.onShowColl)
+        
+        self.connect(self.view.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
         
     def onLoadCorpus(self):
         
@@ -89,6 +96,8 @@ class Presenter(QtGui.QMainWindow):
             self.view.tabWidget.setEnabled(True)
             self.view.loadBtn.setEnabled(False)
             self.view.showFreqDistBtn.setEnabled(False)
+            self.view.previewForeignBtn.setEnabled(False)
+            self.view.previewPatternBtn.setEnabled(False)
             
             self.view.encoding.setText(encoding)
             self.view.wordCount.setText(str(self.model.getWordCount()))
@@ -104,18 +113,13 @@ class Presenter(QtGui.QMainWindow):
             
             self.view.tokenizedText.setPlainText('\n'.join(self.model.getTokens()))
             
-            self.onRefreshForeignWords()
+            #self.onRefreshForeignWords()
         else:
             self.view.encoding.setText("not recognized!")
         
     def onSelectFile(self):
         self.view.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
         self.view.loadBtn.setEnabled(True)
-        
-    def onRefreshForeignWords(self):
-        self.model.findForeignWords()
-        self.view.foreignWordsCount.setText(str(self.model.getForeignWordsCount()))
-        self.view.foreignPercentage.setText(str(self.model.getForeignPercentage()))
         
     def showTableDialog(self, data, windowTitle, headerList, onDeleteFromSet=None):
         
@@ -150,7 +154,6 @@ class Presenter(QtGui.QMainWindow):
         self.connect(saveToFile, 
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onSaveToFile([line[0]+' ' + unicode(line[1]) + '\n' for line in data  ] ))
-        
         
         layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(tableView)
@@ -189,7 +192,6 @@ class Presenter(QtGui.QMainWindow):
         dialog.show()
         
     def onSaveToFile(self, data):
-        
         filename = QtGui.QFileDialog.getSaveFileName(self, 'Save to File', '.')
         fname = codecs.open(filename, 'w', encoding='utf-8')
         fname.writelines(data)
@@ -198,15 +200,12 @@ class Presenter(QtGui.QMainWindow):
     def onDeleteFromCommonSet(self, words):
         self.model.set_ignored_common(self.model.get_ignored_common().union(set(words)))
         
-    def onDeleteFromForeignSet(self, words):
-        self.model.setAllowedForeignWordSet(self.model.getAllowedForeignWordSet().union(set(words)))
-        self.onRefreshForeignWords()
-        
-    def onPreviewForeignWords(self):
-    
-        foreignWords = self.model.getForeignWords()
-        title = str(self.model.getForeignWordsCount()) +' foreign words found'
-        self.showTableDialog(foreignWords, title, ["Word", "Count"], self.onDeleteFromForeignSet)
+    def noMatchesWindow(self):
+        box= QtGui.QMessageBox(self)
+        box.setText("No matches")
+        box.setMinimumHeight(300)
+        box.setWindowTitle("No matches")
+        box.exec_()
         
     def onFindMostCommon(self):
         
@@ -220,39 +219,17 @@ class Presenter(QtGui.QMainWindow):
         title = str(len(hapaxes)) +' Hapaxes'
         self.showListDialog(hapaxes, title, "Word")
         
-    def onFindContext(self):
-        if self.view.contextWord.text() != "":
-            contexts = self.model.findWordContext(self.view.contextWord.text(), self.view.contextCount.value(), self.view.contextLength.value())
-            if contexts != []:
-                title = str(len(contexts)) + ' contexts of \'' + self.view.contextWord.text() + '\''
-                self.showListDialog(contexts, title, "Context")
-            else:
-                self.noMatchesWindow()
-           
-    def onFindPattern(self):
-        if self.view.patternTxt.text() != "":
-            words = self.model.findPattern(self.view.patternTxt.text())
-            wordCount = sum([word[1] for word in words])
-            percentage = round(wordCount*100/float(self.model.getWordCount()), 2)
-            self.view.patternPercentage.setText(str(percentage))
-
-            if words != []:
-                title = str(wordCount) + ' words matching pattern \'' + self.view.patternTxt.text() + '\''
-                self.showTableDialog(words, title, ["Word", "Count"])
-            else:
-                self.noMatchesWindow()
-            
     def onComputeZipf(self):
         self.view.zipfFrame.setEnabled(True)
-        input = ''
+        unit = ''
         if self.view.wordZipfRadio.isChecked():
-            input='word'
+            unit='word'
         if self.view.bigramZipfRadio.isChecked():
-            input='bigram'
+            unit='bigram'
         if self.view.letterZipfRadio.isChecked():
-            input='letter'
+            unit='letter'
         
-        self.model.computeZipf(input)
+        self.model.computeZipf(unit)
         self.view.ZipfTrend.setText( str( round(self.model.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.model.getPolyFit()[1], 3) ) )
         self.view.ZipfError.setText( str( round( self.model.get_relZipfError(), 3 ) ) )
         
@@ -280,6 +257,17 @@ class Presenter(QtGui.QMainWindow):
         dialog.setLayout(lay)
         dialog.show()
                 
+    def onShowFreqDist(self):
+        
+        freqDistData = self.model.prepareFreqDist(self.view.bigramZipfRadio.isChecked())
+        if self.view.bigramZipfRadio.isChecked():
+            title = 'Frequency Distribution of bigrams'
+            unit = 'Bigram'
+        else:
+            title = 'Frequency Distribution of letters'
+            unit = 'Letter'
+        self.showTableDialog(freqDistData, title, [unit, "Count"])
+        
     def onIgnoreList(self, title, getter, setter, func=None):
         
         dialog= QtGui.QDialog(self)
@@ -312,12 +300,59 @@ class Presenter(QtGui.QMainWindow):
                 if func:
                     func()
         
-    def noMatchesWindow(self):
-        box= QtGui.QMessageBox(self)
-        box.setText("No matches")
-        box.setMinimumHeight(300)
-        box.setWindowTitle("No matches")
-        box.exec_()
+    def onFindForeignWords(self):
+        rules = []
+        if self.view.checkBoxConsonants.checkState():
+            rules.append('consonant')
+        if self.view.checkBoxwyjkx.checkState():
+            rules.append('wyjkx')
+            
+        if rules != []:
+            self.model.findForeignWords(rules)
+            self.view.foreignWordsCount.setText(str(self.model.getForeignWordsCount()))
+            self.view.foreignPercentage.setText(str(self.model.getForeignPercentage()))
+            self.view.previewForeignBtn.setEnabled(True)
+        
+    def onDeleteFromForeignSet(self, words):
+        self.model.setAllowedForeignWordSet(self.model.getAllowedForeignWordSet().union(set(words)))
+        self.onFindForeignWords()
+        
+    def onPreviewForeignWords(self):
+    
+        foreignWords = self.model.getForeignWords()
+        if foreignWords != []:
+            title = str(self.model.getForeignWordsCount()) +' foreign words found'
+            self.showTableDialog(foreignWords, title, ["Word", "Count"], self.onDeleteFromForeignSet)
+        else:
+            self.noMatchesWindow()
+            
+        
+    def onFindPattern(self):
+        if self.view.patternTxt.text() != "":
+            if self.model.findPatternWords(self.view.patternTxt.text()) == 0:
+                self.view.patternWordCount.setText(str(self.model.getPatternWordsCount()))
+                self.view.patternWordPercentage.setText(str(self.model.getPatternPercentage()))
+                self.view.previewPatternBtn.setEnabled(True)
+            else:
+                self.view.patternWordCount.setText('')
+                self.view.patternWordPercentage.setText('')
+                self.view.previewPatternBtn.setEnabled(False)
+                box= QtGui.QMessageBox(self)
+                box.setText("Regular expression is invalid")
+                box.setMinimumHeight(300)
+                box.setWindowTitle("Error")
+                box.exec_()
+
+            
+    def onPreviewPatternWords(self):
+    
+        patternWords = self.model.getPatternWords()
+        if patternWords != []:
+            title = str(self.model.getPatternWordsCount()) + ' words matching pattern \'' + self.view.patternTxt.text() + '\''
+            self.showTableDialog(patternWords, title, ["Word", "Count"])
+        else:
+            self.noMatchesWindow()
+        
         
     def onPOSbrowse(self):
         self.view.POScorpusPath.setText(QtGui.QFileDialog.getOpenFileName())
@@ -359,13 +394,18 @@ class Presenter(QtGui.QMainWindow):
         
         
         
+        
     def onFindColl(self):
 
         self.model.findCollocations()
         
         
         
-        
-        
-        
-        
+    def onFindContext(self):
+        if self.view.contextWord.text() != "":
+            contexts = self.model.findWordContext(self.view.contextWord.text(), self.view.contextCount.value(), self.view.contextLength.value())
+            if contexts != []:
+                title = str(len(contexts)) + ' contexts of \'' + self.view.contextWord.text() + '\''
+                self.showListDialog(contexts, title, "Context")
+            else:
+                self.noMatchesWindow()

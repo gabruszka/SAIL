@@ -66,7 +66,8 @@ class Model():
                           }
             
         self.__encodings = ['utf8', 'iso-8859-1']
-        
+        print len(self.__letters)
+        print self.__letters
         self.__defaultTag = ''
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
         
@@ -156,6 +157,15 @@ class Model():
     def getForeignPercentage(self):
         return round(self.__foreignWordsCount*100/float(self.__wordCount), 2)
     
+    def getPatternWords(self):
+        return self.__patternWords
+    
+    def getPatternWordsCount(self):
+        return self.__patternWordsCount
+        
+    def getPatternPercentage(self):
+        return round(self.__patternWordsCount*100/float(self.__wordCount), 2)
+    
     def getRawText(self):
         return self.__rawText
         
@@ -205,13 +215,11 @@ class Model():
                 break
             
             except UnicodeDecodeError:
-                print 'UnicodeDecodeError'
                 encoding = ''
                 continue
                  
         if encoding!='':
             self.initFields()
-            
             
             #SENTENCES
             punkt_param = PunktParameters()
@@ -265,13 +273,13 @@ class Model():
                 
         self.__taggedCorpus = POScorpus
         
-    def computeZipf(self, input):
+    def computeZipf(self, unit):
         
-        if input == 'word':
+        if unit == 'word':
             self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__freqDist.values())+1) ] )
             self.__logfreqDist = np. array([math.log(i, 10) for i in self.__freqDist.values() ])
         
-        if input == 'bigram':
+        if unit == 'bigram':
             
             bigramFreqDist = dict()
             for first in self.__letters:
@@ -285,14 +293,13 @@ class Model():
                         bigramFreqDist[bigram] += token[1]
                     except KeyError:
                         print token
-                        
-            
+
             self.__sortedBigrams = sorted([x for x in bigramFreqDist.items() if x[1]>0], key=itemgetter(1))
             self.__sortedBigrams.reverse()
             self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__sortedBigrams)+1) ] )
             self.__logfreqDist = np. array([math.log(i[1], 10) for i in self.__sortedBigrams])
             
-        if input == 'letter':
+        if unit == 'letter':
 
             letterFreqDist = dict()
             for letter in self.__letters:
@@ -300,9 +307,12 @@ class Model():
                 
             for token in self.__freqDist.items():
                 for ii in range(len(token[0])):
-                    letter = token[0][ii]
-                    letterFreqDist[letter] += token[1]
-            
+                    try:
+                        letter = token[0][ii]
+                        letterFreqDist[letter] += token[1]
+                    except KeyError:
+                        print token
+                        
             self.__sortedLetters = sorted([x for x in letterFreqDist.items() if x[1]>0], key=itemgetter(1))
             self.__sortedLetters.reverse()
             self.__logx = np.array([math.log(i, 10) for i in  range(1, len(self.__sortedLetters)+1) ] )
@@ -311,23 +321,43 @@ class Model():
         self.__polyFit = np.polyfit(self.__logx, self.__logfreqDist, 1)
         
         poweredPoly = [np.power(10, self.getPoly( self.__logx[i] ) ) for i in  range(len(self.__logx))]
-        
         relativeErrors = [ abs( self.__freqDist.values()[i] - poweredPoly[i] )
                                         / float( self.__freqDist.values()[i] ) for i in  range(len(self.__logx)) ]
         
         self.__relZipfError = np.mean( relativeErrors ) * 100
         
-    def findForeignWords(self):
+    def prepareFreqDist(self, areBigramsChecked):
         
-        cond1 = re.compile('.*[xkwjy].*')
-        cond2 = re.compile('.*[qrtpsdfghlzcvbnm]$')
-        self.__foreignWords = [item for item in self.__freqDist.items() if cond1.match(item[0]) or (cond2.match(item[0]) and item[0] not in self.__allowedForeign)]
+        if areBigramsChecked:
+            return self.__sortedBigrams
+        else:
+            return self.__sortedLetters            
+            
+        
+    def findForeignWords(self, rules):
+        foreignWords = []
+        if 'consonant' in rules:
+            cond = re.compile('.*[qrtpsdfghlzcvbnm]$')
+            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0])]
+            
+        if 'wyjkx' in rules:
+            cond = re.compile('.*[wyjkx].*')
+            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0])]
+            
+        self.__foreignWords = [item for item in foreignWords
+                               if item[0] not in self.__allowedForeign]
         self.__foreignWordsCount = sum([word[1] for word in self.__foreignWords])
 
-    def findPattern(self, pattern):
+    def findPatternWords(self, pattern):
         
-        cond = re.compile(unicode(pattern))
-        return [item for item in self.__freqDist.items() if cond.match(item[0])]        
+        try:
+            cond = re.compile(unicode(pattern))
+            self.__patternWords = [item for item in self.__freqDist.items() if cond.match(item[0])]
+            self.__patternWordsCount = sum([word[1] for word in self.__patternWords])
+            return 0
+        except re.error:
+            return -1
+        
         
     def findWordContext(self, word, lines=25, wordCount=2):
         
