@@ -74,6 +74,16 @@ class Presenter(QtGui.QMainWindow):
         #self.connect(self.view.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
         self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTagging)
         
+        self.connect(self.view.setManualTagsBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onSetTaggingRules('manual'))
+        self.connect(self.view.definePatternsBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onSetTaggingRules('regexp'))
+        self.connect(self.view.defineSyntaxBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onSetTaggingRules('syntax'))
+        
         
         #Collocations
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
@@ -392,9 +402,34 @@ class Presenter(QtGui.QMainWindow):
     def onPreviewTagging(self):
         self.view.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
         
+    def onSetTaggingRules(self, tagger):
+        dialog= QtGui.QDialog(self)
+        dialog.setWindowTitle('Rules for ' + tagger + ' tagger')
         
+        plainText = MyPlainTextEdit(dialog)
+        plainText.setPlainText(QtCore.QString(self.model.getTaggingRules(tagger)))
+        plainText.textChanged.connect(plainText.listChanged)
         
+        okBtn = QtGui.QPushButton(dialog)
+        okBtn.setText('Apply')
+        okBtn.clicked.connect(dialog.close)
+        okBtn.clicked.connect(lambda: self.onClosingSetTaggingRules(plainText.hasChanged, 
+                                                                 tagger,
+                                                                 unicode(plainText.toPlainText())
+                                                                 ))
+                
+                
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(plainText)
+        layout.addWidget(okBtn)
         
+        dialog.setLayout(layout)
+        dialog.show()
+        
+    def onClosingSetTaggingRules(self, hasChanged, tagger, rules):
+        if hasChanged:
+            self.model.setTaggingRules(tagger, rules)
+            
     def onFindColl(self):
 
         self.model.findCollocations()

@@ -72,7 +72,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideMiddle</enum>
@@ -788,7 +788,7 @@
        <rect>
         <x>10</x>
         <y>100</y>
-        <width>231</width>
+        <width>251</width>
         <height>141</height>
        </rect>
       </property>
@@ -818,7 +818,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>RegEx Tagger</string>
+        <string>RegExp Tagger</string>
        </property>
       </widget>
       <widget class="QCheckBox" name="probabilityTaggerChk">
@@ -851,7 +851,7 @@
        <property name="geometry">
         <rect>
          <x>130</x>
-         <y>50</y>
+         <y>48</y>
          <width>91</width>
          <height>23</height>
         </rect>
@@ -860,17 +860,30 @@
         <string>Define Patterns</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="setTagsBtn">
+      <widget class="QPushButton" name="setManualTagsBtn">
        <property name="geometry">
         <rect>
          <x>130</x>
-         <y>20</y>
-         <width>61</width>
+         <y>18</y>
+         <width>111</width>
          <height>23</height>
         </rect>
        </property>
        <property name="text">
-        <string>Set Tags</string>
+        <string>Set Tags Mannually</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="defineSyntaxBtn">
+       <property name="geometry">
+        <rect>
+         <x>130</x>
+         <y>78</y>
+         <width>79</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Define Rules</string>
        </property>
       </widget>
      </widget>

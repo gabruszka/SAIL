@@ -430,7 +430,7 @@ class Model():
                 
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.__customTags = dict()
-        for line in codecs.open(path + 'customTags.txt', encoding='utf-8').readlines():
+        for line in codecs.open(path + 'manualTaggingRules.txt', encoding='utf-8').readlines():
             words = line.split()
             self.__customTags[words[0]] = set(words[1:])
             
@@ -444,10 +444,10 @@ class Model():
         
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.__regexTagRules = dict()
-        for line in set(codecs.open(path + 'regexTagsRules.txt', encoding='utf-8').readlines()):
+        for line in set(codecs.open(path + 'regexpTaggingRules.txt', encoding='utf-8').readlines()):
             if len(line)>4 and  line[0]!= '#':
                 words = line.split()
-                self.__regexTagRules[re.compile(unicode(words[0]))] = (words[1], words[2:])
+                self.__regexTagRules[re.compile(unicode(words[1]))] = (words[0], words[2:])
         
         
         for i in range(len(self.__taggedTokens)):
@@ -460,6 +460,23 @@ class Model():
                         #if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
                         #    self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
         
+    def getTaggingRules(self, tagger):
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        #if tagger == "manual":
+        f = codecs.open(path + tagger + 'TaggingRules.txt', encoding='utf-8')
+        rules = f.read()
+        f.close()
+        return rules
+
+    def setTaggingRules(self, tagger, rules):
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        f = codecs.open(path + tagger + 'TaggingRules.txt', 'w', encoding='utf-8' )
+        f.seek(0)
+        f.write(rules)
+        f.truncate()
+        f.close()
+        
+        
     def findCollocations(self):
         self.__collWords = []
         allowed = re.compile('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
@@ -470,8 +487,6 @@ class Model():
             token = token.lower()
             if not special.match(token):
                 self.__collWords.append(token)
-        
-        
         
         collocations = []
         for i in range(len(self.__collWords)-1):

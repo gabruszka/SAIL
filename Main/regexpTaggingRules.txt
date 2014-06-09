@@ -1,0 +1,28 @@
+NUM .*\d.*
+ADV .+mente$
+
+NOUN .{2,}[ae][nz]za$
+NOUN .{2,}tà$
+NOUN .+aggio?$
+NOUN .+ism[io]$
+NOUN .+on[ei]$ buone buoni 
+NOUN .+or[ei]$
+
+VERB .+[ae]ndo$  quando fernando comando contrabbando
+VERB .+amo$
+VERB .+rà$
+
+PRONVERB .+[ae]r[mcsvl]i$ diversi merci parla parli
+PRONVERB .+[ae]r[mtscv]e[ln][aeio]$ diversi
+PRONVERB .+[ae]rglie[ln][aeio]$ diversi
+PRONVERB .{3,}[ae]ndo[mtscv]e[ln][aeio]$
+PRONVERB .{3,}[ae]ndo[mtscv]i$
+
+ADJ .{3,}issim[oaie]$
+ADJ .{2,}ile$
+ADJ .{2,}os[oa]$
+
+#NOUN .{2,}ante$ durante
+#NOUN .+in[oiae]$
+#VERB .{2,}[aei]re$
+#NOUN .+etto$ detto letto
