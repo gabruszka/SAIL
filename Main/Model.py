@@ -16,10 +16,12 @@ import codecs
 import itertools
 from operator import itemgetter
 
+
+        
 class SyntaxTaggingRule():
     def __init__(self, before, word, after):
         self.before = before
-        self.word = word
+        self.tag = word
         self.after = after
 
 
@@ -81,21 +83,22 @@ class Model():
         self.__encodings = ['utf8', 'iso-8859-1']
         self.__defaultTag = ''
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
-        self.__manualTags = {
-                             'ADJ': set(),
-                             'ADV': set(),
-                             'ART': set(),
-                             'CONJ': set(),
-                             'DPREP': set(),
-                             'NOUN': set(),
-                             'NUM': set(),
-                             'PREP': set(),
-                             'PUNCT': set(),
-                             'PRON': set(),
-                             'PRONVERB': set(),
-                             'SPECIAL': set(),
-                             'VERB': set()                             
-                             }
+        self.__tags = {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}
+        self.__manualTags = {tag: set() for tag in self.__tags}
+#                              'ADJ': set(),
+#                              'ADV': set(),
+#                              'ART': set(),
+#                              'CONJ': set(),
+#                              'DPREP': set(),
+#                              'NOUN': set(),
+#                              'NUM': set(),
+#                              'PREP': set(),
+#                              'PUNCT': set(),
+#                              'PRON': set(),
+#                              'PRONVERB': set(),
+#                              'SPECIAL': set(),
+#                              'VERB': set()                             
+#                             }
         self.parseSyntaxRules()
         
         
@@ -279,25 +282,24 @@ class Model():
         for encoding in self.__encodings:
             
             try:
-                file = codecs.open(path,'r',encoding=encoding)
+                POSfile = codecs.open(path,'r',encoding=encoding)
                 POScorpus = []
-                for line in file.readlines():
+                for line in POSfile.readlines():
                     words = line.split()
                     if len(words) > 1:
                         if words[1] in {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}:
                             POScorpus.append((words[0], words[1]))
                         else:
                             print 'Unknown tag!: ' + words[1]
-                    else:
-                        print line
+#                     else:
+#                         print line
+                POSfile.close()
                 break
             except UnicodeDecodeError:
                 print 'UnicodeDecodeError'
                  
             except UnicodeEncodeError:
                 print 'UnicodeEncodeError'
-                
-                
                 
         self.__taggedCorpus = POScorpus
         
@@ -320,7 +322,7 @@ class Model():
                         bigram = token[0][ii]+token[0][ii+1]
                         bigramFreqDist[bigram] += token[1]
                     except KeyError:
-                        print token
+                        print "Key error on token: ", token
 
             self.__sortedBigrams = sorted([x for x in bigramFreqDist.items() if x[1]>0], key=itemgetter(1))
             self.__sortedBigrams.reverse()
@@ -339,7 +341,7 @@ class Model():
                         letter = token[0][ii]
                         letterFreqDist[letter] += token[1]
                     except KeyError:
-                        print token
+                        print "Key Error on token: ", token
                         
             self.__sortedLetters = sorted([x for x in letterFreqDist.items() if x[1]>0], key=itemgetter(1))
             self.__sortedLetters.reverse()
@@ -417,6 +419,8 @@ class Model():
                 self.applyRegexTagger()
             if tagger == 'syntax':
                 self.applySyntaxTagger()
+            if tagger == 'probability':
+                self.applyProbabilityTagger()
                 
         tagCount = 0
         notTagged = []
@@ -434,8 +438,6 @@ class Model():
                 else:
                     notTagged.append(self.__taggedTokens[i][0])
                     
-            for token in wrongTags:
-                print token
             
             self.__tagErrorCount = errorCount
                    
@@ -508,43 +510,65 @@ class Model():
                     after.append(words[j])
                 if (insertedTag!="" and (before!=[] or after!=[])):
                     self.__syntaxTagRules.append(SyntaxTaggingRule(before, insertedTag, after))
-        
-        for rule in self.__syntaxTagRules:
-            print rule.before, "", rule.word, "", rule. after
-    
-    
-        
+
     def applySyntaxTagger(self):
         self.parseSyntaxRules()
-        #for i in range(len(self.__taggedTokens)):
-        for i in range(30):
+        for i in range(len(self.__taggedTokens)):
             if self.__taggedTokens[i][1] == self.__defaultTag:
                 
                 for rule in self.__syntaxTagRules:
                     #rule lenghts check
                     if i >= len(rule.before) and len(self.__taggedTokens) - i >= len(rule.after):
                         poniechaj = False
-                        tagsLen = len(rule.before)
-                        print tagsLen
-                        for before_it in range(tagsLen):
-                            print self.__taggedTokens[i - tagsLen + before_it][1], "",   rule.before[before_it]
-                            if self.__taggedTokens[i - tagsLen + before_it][1] != rule.before[before_it]:
-                                poniechaj = True
-                        
+                        tagsCount = len(rule.before)
+
+                        for before_it in range(tagsCount):
+                            if rule.before[before_it] in self.__tags:
+                                if self.__taggedTokens[i - tagsCount + before_it][1] != rule.before[before_it]:
+                                    poniechaj = True
+                            else:
+                                if self.__taggedTokens[i - tagsCount + before_it][0] != rule.before[before_it]:
+                                    poniechaj = True
+                                    
                         if (poniechaj):
                             continue
                         
-                        tagsLen = len(rule.after)
-                        for after_it in range(tagsLen):
-                            if self.__taggedTokens[i + 1 + after_it][1] != rule.after[after_it]:
-                                poniechaj = True
-                        
+                        for after_it in range(len(rule.after)):
+                            if rule.after[after_it] in self.__tags:
+                                if rule.after[after_it] != self.__taggedTokens[i + 1 + after_it][1]:
+                                    poniechaj = True
+                            else:
+                                if rule.after[after_it] != self.__taggedTokens[i + 1 + after_it][0]:
+                                    poniechaj = True
+                                
                         if (poniechaj):
                             continue
                                 
-
-                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], rule.word)
+                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], rule.tag)
                         break
+        
+    def findMostCommonTag(self):
+        tagsFreqDistMap = dict()
+        for word in self.__taggedCorpus:
+            if word[0] not in tagsFreqDistMap.keys():
+                tagsFreqDistMap[word[0]] = FreqDist([word[1]])
+            else:
+                tagsFreqDistMap[word[0]].inc(word[1])
+        
+        self.__mostCommonTagMap = dict()
+        for word in tagsFreqDistMap.keys():
+            self.__mostCommonTagMap[word] = tagsFreqDistMap[word].keys()[0]
+#             
+#         for word in self.__mostCommonTagMap.keys():
+#             print word.encode('ascii', 'ignore'), " ", self.__mostCommonTagMap[word]
+        
+    def applyProbabilityTagger(self):
+        self.findMostCommonTag()
+        
+        for i in range(len(self.__taggedTokens)):
+            if self.__taggedTokens[i][1] == self.__defaultTag:
+                if self.__taggedTokens[i][0] in self.__mostCommonTagMap.keys():
+                    self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__mostCommonTagMap[self.__taggedTokens[i][0]])
         
     def getTaggingRules(self, tagger):
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
@@ -579,7 +603,6 @@ class Model():
             collocations.append((self.__collWords[i], self.__collWords[i+1]))
         
         
-        
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
         output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 
         self.__collFreqDist = FreqDist(collocations)
@@ -588,6 +611,3 @@ class Model():
                 output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
             
         output.close()
-            
-        
-            
