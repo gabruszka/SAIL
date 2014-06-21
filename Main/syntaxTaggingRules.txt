@@ -1,27 +1,7 @@
-.*\d.* NUM
-.+mente$ ADV
-.{2,}[ae][nz]za$ NOUN
-
-.+[ae]ndo$ VERB quando fernando comando contrabbando
-.{3,}[ae]ndo[mtscv]e[ln][aeio]$ PRONVERB
-.{3,}[ae]ndo[mtscv]i$ PRONVERB
-
-.{2,}tà$ NOUN
-.+aggio?$ NOUN
-.+ism[io]$ NOUN
-.+amo$ VERB
-.+rà$ VERB
-.+[ae]r[mcsvl]i$ PRONVERB diversi merci parla parli
-.+[ae]r[mtscv]e[ln][aeio]$ PRONVERB diversi
-.+[ae]rglie[ln][aeio]$ PRONVERB diversi
-.{3,}issim[oaie]$ ADJ
-.{2,}ile$ ADJ
-
-.{2,}os[oa]$ ADJ
-.+on[ei]$ NOUN buone buoni 
-.+or[ei]$ NOUN
-
-#.{2,}ante$ NOUN durante
-#.+in[oiae]$ NOUN
-#.{2,}[aei]re$ VERB
-#.+etto$ NOUN detto letto
+ART $NOUN PREP
+ART $NOUN DPREP
+ADJ $NOUN PUNCT
+DPREP $NOUN PUNCT
+DPREP $NOUN DPREP
+si $VERB
+ART $NOUN VERB

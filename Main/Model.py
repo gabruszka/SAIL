@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 '''
 Created on 03-11-2013
 
@@ -14,7 +16,18 @@ import codecs
 import itertools
 from operator import itemgetter
 
+class SyntaxTaggingRule():
+    def __init__(self, before, word, after):
+        self.before = before
+        self.word = word
+        self.after = after
+
+
+
 def customWordtokenize(text):
+    
+        text = re.sub(ur'[\'\<\>`’“”«»]', ' ', text)
+        
         #starting quotes
         text = re.sub(r'([ (\[{<])"', r'\1 " ', text)
 
@@ -25,7 +38,7 @@ def customWordtokenize(text):
         text = re.sub(r'([^\.])(\.)([\]\)}>"\']*)\s*$', r'\1 \2\3 ', text)
         text = re.sub(r'[?!]', r' \g<0> ', text)
 
-        text = re.sub(r"([^'])' ", r"\1 ' ", text)
+        #text = re.sub(r"([^'])' ", r"\1 ' ", text)
 
         #parens, brackets, etc.
         #text = re.sub(r'\<.*\>', r' ', text)
@@ -66,10 +79,25 @@ class Model():
                           }
             
         self.__encodings = ['utf8', 'iso-8859-1']
-        print len(self.__letters)
-        print self.__letters
         self.__defaultTag = ''
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
+        self.__manualTags = {
+                             'ADJ': set(),
+                             'ADV': set(),
+                             'ART': set(),
+                             'CONJ': set(),
+                             'DPREP': set(),
+                             'NOUN': set(),
+                             'NUM': set(),
+                             'PREP': set(),
+                             'PUNCT': set(),
+                             'PRON': set(),
+                             'PRONVERB': set(),
+                             'SPECIAL': set(),
+                             'VERB': set()                             
+                             }
+        self.parseSyntaxRules()
+        
         
     def initFields(self):
         
@@ -225,7 +253,7 @@ class Model():
             punkt_param = PunktParameters()
             punkt_param.abbrev_types = set(['dr', 'vs', 'n', 'v', 'etc', 'art', 'p', 'Cost', 'ss', 'pag'])
             sentence_splitter = PunktSentenceTokenizer(punkt_param)
-            text = re.sub('[\'\<\>`]', ' ', self.__rawText)
+            text = re.sub(ur'[\'\<\>`’]', ' ', self.__rawText)
             #text = re.sub('(\d+)', r' \1 ', text)
             sentences = sentence_splitter.tokenize(text)
             
@@ -387,6 +415,8 @@ class Model():
                 self.applyManualTagger()
             if tagger == 'regex':
                 self.applyRegexTagger()
+            if tagger == 'syntax':
+                self.applySyntaxTagger()
                 
         tagCount = 0
         notTagged = []
@@ -429,15 +459,16 @@ class Model():
     def applyManualTagger(self):
                 
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
-        self.__customTags = dict()
+
         for line in codecs.open(path + 'manualTaggingRules.txt', encoding='utf-8').readlines():
-            words = line.split()
-            self.__customTags[words[0]] = set(words[1:])
+            if len(line)>4 and  line[0]!= '#':
+                words = line.split()
+                self.__manualTags[words[0]] = self.__manualTags[words[0]].union(set(words[1:]))
             
         for i in range(len(self.__taggedTokens)):
             if self.__taggedTokens[i][1] == self.__defaultTag:
-                for tag in self.__customTags:
-                    if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
+                for tag in self.__manualTags:
+                    if self.__taggedTokens[i][0].lower() in self.__manualTags[tag]:
                         self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
 
     def applyRegexTagger(self):
@@ -449,7 +480,6 @@ class Model():
                 words = line.split()
                 self.__regexTagRules[re.compile(unicode(words[1]))] = (words[0], words[2:])
         
-        
         for i in range(len(self.__taggedTokens)):
             if self.__taggedTokens[i][1] == self.__defaultTag:
                 for rule in self.__regexTagRules:
@@ -457,8 +487,64 @@ class Model():
                         word = self.__taggedTokens[i][0].lower()
                         if word not in self.__regexTagRules[rule][1] and rule.match(word):
                             self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__regexTagRules[rule][0])
-                        #if self.__taggedTokens[i][0].lower() in self.__customTags[tag]:
-                        #    self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
+        
+
+    def parseSyntaxRules(self):
+        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        self.__syntaxTagRules = []
+        for line in set(codecs.open(path + 'syntaxTaggingRules.txt', encoding='utf-8').readlines()):
+            if line[0]!= '#':
+                words = line.split()
+                before = []
+                after = []
+                insertedTag = ""
+                i = 0
+                for i in range(0, len(words)):
+                    if words[i][0] == '$':
+                        insertedTag = words[i][1:]
+                        break
+                    before.append(words[i])
+                for j in range(i+1, len(words)):
+                    after.append(words[j])
+                if (insertedTag!="" and (before!=[] or after!=[])):
+                    self.__syntaxTagRules.append(SyntaxTaggingRule(before, insertedTag, after))
+        
+        for rule in self.__syntaxTagRules:
+            print rule.before, "", rule.word, "", rule. after
+    
+    
+        
+    def applySyntaxTagger(self):
+        self.parseSyntaxRules()
+        #for i in range(len(self.__taggedTokens)):
+        for i in range(30):
+            if self.__taggedTokens[i][1] == self.__defaultTag:
+                
+                for rule in self.__syntaxTagRules:
+                    #rule lenghts check
+                    if i >= len(rule.before) and len(self.__taggedTokens) - i >= len(rule.after):
+                        poniechaj = False
+                        tagsLen = len(rule.before)
+                        print tagsLen
+                        for before_it in range(tagsLen):
+                            print self.__taggedTokens[i - tagsLen + before_it][1], "",   rule.before[before_it]
+                            if self.__taggedTokens[i - tagsLen + before_it][1] != rule.before[before_it]:
+                                poniechaj = True
+                        
+                        if (poniechaj):
+                            continue
+                        
+                        tagsLen = len(rule.after)
+                        for after_it in range(tagsLen):
+                            if self.__taggedTokens[i + 1 + after_it][1] != rule.after[after_it]:
+                                poniechaj = True
+                        
+                        if (poniechaj):
+                            continue
+                                
+
+                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], rule.word)
+                        break
         
     def getTaggingRules(self, tagger):
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
