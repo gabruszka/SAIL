@@ -131,34 +131,68 @@ class Model():
         self.__concordanceIndex = None
         #self.__syntaxRules = []
         
+        
+    ################################
+    #                              #
+    #           GETTERS            #
+    #                              #
+    ################################
+        
+    ######### GENERAL DATA #########
     def getWords(self):
         return self.__words
         
     def getTokens(self):
         return self.__tokens
         
-    def getTaggedTokens(self):
-        return self.__taggedTokens
+    def getRawText(self):
+        return self.__rawText
         
-    def getTaggedTokensCount(self):
-        return len(self.__taggedTokens)
+    def getWordCount(self):
+        return self.__wordCount
         
-    def getTagCount(self):
-        return self.__tagCount
+    def getWordTypesCount(self):
+        return len(self.__freqDist.items())
+        
+    def getAvgWordLength(self):
+        return self.__avgWordLength
     
-    def getTagErrorCount(self):
-        return self.__tagErrorCount
+    def getAvgSentLength(self):
+        return self.__avgSentLength
     
-    def getTaggedCorpus(self):
-        return self.__taggedCorpus
+    def getLexicalDiversity(self):
+        return self.__lexicalDiversity
         
-    def get_relZipfError(self):
+    ######### FREQUENCY TAB #########
+    def getIgnoredCommon(self):
+        return self.__ignoredCommon
+
+    def setIgnoredCommon(self, value):
+        self.__ignoredCommon = value
+
+    def getMostCommon(self, count):
+        out = []
+        i=0
+        while len(out)<count:
+            if self.__freqDist.items()[i][0] not in self.__ignoredCommon:
+                out.append(self.__freqDist.items()[i])
+            i+=1
+        return out
+    
+    def getHapaxes(self):
+        return self.__freqDist.hapaxes()
+    
+    def getHapaxPercentage(self):
+        return round(len(self.__freqDist.hapaxes())*100/float(len(self.__freqDist.items())), 2)
+    
+        ### ZIPF'S PLOT
+    def getRelZipfError(self):
         return self.__relZipfError
 
-    def get_logfreqDist(self):
+    def getLogfreqDist(self):
         return self.__logfreqDist
 
-    def get_logx(self):
+    def getLogX(self):
         return self.__logx
 
     def getPoly(self, x):
@@ -167,12 +201,8 @@ class Model():
     def getPolyFit(self):
         return self.__polyFit
     
-    def get_ignored_common(self):
-        return self.__ignoredCommon
-
-    def set_ignored_common(self, value):
-        self.__ignoredCommon = value
-
+    
+    ########## PATTERNS TAB #########
     def setAllowedForeignWordSet(self, newSet):
         self.__allowedForeign = newSet
             
@@ -197,45 +227,36 @@ class Model():
     def getPatternPercentage(self):
         return round(self.__patternWordsCount*100/float(self.__wordCount), 2)
     
-    def getRawText(self):
-        return self.__rawText
+    
+    
+    ### PARTS OF SPEECH TAGGING TAB
+    def getTaggedTokens(self):
+        return self.__taggedTokens
         
-    def getWordCount(self):
-        return self.__wordCount
+    def getTaggedTokensCount(self):
+        return len(self.__taggedTokens)
         
-    def getWordTypesCount(self):
-        return len(self.__freqDist.items())
-        
-    def getMostCommon(self, count):
-        out = []
-        i=0
-        while len(out)<count:
-            if self.__freqDist.items()[i][0] not in self.__ignoredCommon:
-                out.append(self.__freqDist.items()[i])
-            i+=1
-        return out
+    def getTagCount(self):
+        return self.__tagCount
     
-    def getHapaxes(self):
-        return self.__freqDist.hapaxes()
+    def getTagErrorCount(self):
+        return self.__tagErrorCount
     
-    def getHapaxCount(self):
-        return len(self.__freqDist.hapaxes())
-    
-    def getHapaxPercentage(self):
-        return round(len(self.__freqDist.hapaxes())*100/float(len(self.__freqDist.items())), 2)
-    
-    def getAvgWordLength(self):
-        return self.__avgWordLength
-    
-    def getAvgSentLength(self):
-        return self.__avgSentLength
-    
-    def getLexicalDiversity(self):
-        return self.__lexicalDiversity
+    def getTaggedCorpus(self):
+        return self.__taggedCorpus
         
     def getWrongTags(self):
         return self.__wrongTags
         
+        
+        
+
+        
+    ################################
+    #                              #
+    #           METHODS            #
+    #                              #
+    ################################
         
     def loadCorpus(self, path):
         
@@ -278,35 +299,12 @@ class Model():
             self.__freqDist = FreqDist(words)
             self.__wordCount = len(words)
             self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 3)
+        
+            ### resetting members
+            self.__concordanceIndex = None
                  
         return encoding
     
-    def loadPOSCorpus(self, path):
-        
-        for encoding in self.__encodings:
-            
-            try:
-                POSfile = codecs.open(path,'r',encoding=encoding)
-                POScorpus = []
-                for line in POSfile.readlines():
-                    words = line.split()
-                    if len(words) > 1:
-                        if words[1] in {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}:
-                            POScorpus.append((words[0], words[1]))
-                        else:
-                            print 'Unknown tag!: ' + words[1]
-#                     else:
-#                         print line
-                POSfile.close()
-                break
-            except UnicodeDecodeError:
-                print 'UnicodeDecodeError'
-                 
-            except UnicodeEncodeError:
-                print 'UnicodeEncodeError'
-                
-        self.__taggedCorpus = POScorpus
-        
     def computeZipf(self, unit):
         
         if unit == 'word':
@@ -366,8 +364,9 @@ class Model():
             return self.__sortedBigrams
         else:
             return self.__sortedLetters            
-            
-        
+          
+          
+    ######### PATTERNS TAB ###########
     def findForeignWords(self, rules):
         foreignWords = []
         if 'consonant' in rules:
@@ -391,27 +390,33 @@ class Model():
             return 0
         except re.error:
             return -1
-        
-        
-    def findWordContext(self, word, lines=25, wordCount=2):
-        
-        if not self.__concordanceIndex:
-            self.__concordanceIndex = nltk.ConcordanceIndex([token for token in self.__tokens])
-            
-        contexts = []
-        offsets = self.__concordanceIndex.offsets(unicode(word))
-  
-        if offsets:
-            lines = min(lines, len(offsets))
-            for i in offsets:
-                if lines <= 0:
-                    break
-                left = (' '.join(self.__tokens[i-wordCount:i]))
-                right = ' '.join(self.__tokens[i+1:i+wordCount+1])
-                contexts.append( left + ' ' + self.__tokens[i].upper() + ' ' + right)
-                lines -= 1
-        return contexts
 
+
+    ######## PARTS OF SPEECH TAGGING TAB ##########
+    
+    def loadPOSCorpus(self, path):
+        
+        for encoding in self.__encodings:
+            try:
+                POSfile = codecs.open(path,'r',encoding=encoding)
+                POScorpus = []
+                for line in POSfile.readlines():
+                    words = line.split()
+                    if len(words) > 1:
+                        if words[1] in {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}:
+                            POScorpus.append((words[0], words[1]))
+                        else:
+                            print 'Unknown tag!: ' + words[1]
+                POSfile.close()
+                break
+            except UnicodeDecodeError:
+                print 'UnicodeDecodeError'
+                 
+            except UnicodeEncodeError:
+                print 'UnicodeEncodeError'
+                
+        self.__taggedCorpus = POScorpus
+        
     def applyTaggers(self, taggers, fromPOSCorpus = False):
         
         self.resetTags(fromPOSCorpus)
@@ -450,9 +455,6 @@ class Model():
                     tagCount+=1
                 else:
                     notTagged.append(token[0])
-        #for token in FreqDist(notTagged).items():
-        #    print token
-        
         self.__tagCount = tagCount
             
     def resetTags(self, fromPOSCorpus):
@@ -492,7 +494,6 @@ class Model():
                         word = self.__taggedTokens[i][0].lower()
                         if word not in self.__regexTagRules[rule][1] and rule.match(word):
                             self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__regexTagRules[rule][0])
-        
 
     def parseSyntaxRules(self):
         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
@@ -561,9 +562,6 @@ class Model():
         self.__mostCommonTagMap = dict()
         for word in tagsFreqDistMap.keys():
             self.__mostCommonTagMap[word] = tagsFreqDistMap[word].keys()[0]
-#             
-#         for word in self.__mostCommonTagMap.keys():
-#             print word.encode('ascii', 'ignore'), " ", self.__mostCommonTagMap[word]
         
     def applyProbabilityTagger(self):
         self.findMostCommonTag()
@@ -589,7 +587,8 @@ class Model():
         f.truncate()
         f.close()
         
-        
+    ########## COLLOCATIONS TAB ############
+    
     def findCollocations(self):
         self.__collWords = []
         allowed = re.compile('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
@@ -614,3 +613,25 @@ class Model():
 #                 output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
 #             
 #         output.close()
+
+
+    ######### CONTEXT TAB ###########
+    def findWordContext(self, word, lines=25, wordCount=2):
+        
+        if not self.__concordanceIndex:
+            self.__concordanceIndex = nltk.ConcordanceIndex([token for token in self.__tokens],
+                                                            key=lambda s:s.lower())
+            
+        contexts = []
+        offsets = self.__concordanceIndex.offsets(unicode(word))
+  
+        if offsets:
+            lines = min(lines, len(offsets))
+            for i in offsets:
+                if lines <= 0:
+                    break
+                left = (' '.join(self.__tokens[i-wordCount:i]))
+                right = ' '.join(self.__tokens[i+1:i+wordCount+1])
+                contexts.append( left + ' ' + self.__tokens[i].upper() + ' ' + right)
+                lines -= 1
+        return contexts

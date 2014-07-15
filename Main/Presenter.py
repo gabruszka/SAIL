@@ -41,22 +41,13 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.view.ignoreListCommonBtn, 
                      QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('foreign', self.model.get_ignored_common, self.model.set_ignored_common))
+                     lambda: self.onIgnoreList('foreign', self.model.getIgnoredCommon, self.model.setIgnoredCommon))
         
         self.connect(self.view.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
         self.connect(self.view.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
         self.connect(self.view.hapaxesBtn, QtCore.SIGNAL("clicked()"), self.onFindHapaxes)
         self.connect(self.view.showFreqDistBtn, QtCore.SIGNAL("clicked()"), self.onShowFreqDist)
-        self.connect(self.view.wordZipfRadio, 
-                     QtCore.SIGNAL("toggled(bool)"), 
-                     lambda: self.view.showFreqDistBtn.setEnabled(False))
-        self.connect(self.view.bigramZipfRadio, 
-                     QtCore.SIGNAL("toggled(bool)"), 
-                     lambda: self.view.showFreqDistBtn.setEnabled(True))
-        self.connect(self.view.letterZipfRadio, 
-                     QtCore.SIGNAL("toggled(bool)"), 
-                     lambda: self.view.showFreqDistBtn.setEnabled(True))
-        
+
         #Patterns
         self.connect(self.view.ignoreListForeignBtn, 
                      QtCore.SIGNAL("clicked()"),
@@ -84,6 +75,17 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.defineSyntaxBtn, 
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onSetTaggingRules('syntax'))
+        
+        self.connect(self.view.tagMainCorpusRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.probabilityTaggerChk.setEnabled(True))
+        self.connect(self.view.tagPOSCorpusRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.probabilityTaggerChk.setEnabled(False))
+        self.connect(self.view.tagPOSCorpusRadio, 
+                     QtCore.SIGNAL("toggled(bool)"), 
+                     lambda: self.view.probabilityTaggerChk.setChecked(False))
+        
         
         #Collocations
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
@@ -118,7 +120,7 @@ class Presenter(QtGui.QMainWindow):
             self.view.lexicalDiversity.setText(str(self.model.getLexicalDiversity()))
             
             self.view.wordTypesCount.setText(str(self.model.getWordTypesCount()))
-            self.view.hapaxCount.setText(str(self.model.getHapaxCount()))
+            self.view.hapaxCount.setText(str(len(self.model.getHapaxes())))
             self.view.hapaxPercentage.setText(str(self.model.getHapaxPercentage()))
             
             self.view.tokenizedText.setPlainText('\n'.join(self.model.getTokens()))
@@ -234,14 +236,17 @@ class Presenter(QtGui.QMainWindow):
         unit = ''
         if self.view.wordZipfRadio.isChecked():
             unit='word'
+            self.view.showFreqDistBtn.setEnabled(False)
         if self.view.bigramZipfRadio.isChecked():
             unit='bigram'
+            self.view.showFreqDistBtn.setEnabled(True)
         if self.view.letterZipfRadio.isChecked():
             unit='letter'
+            self.view.showFreqDistBtn.setEnabled(True)
         
         self.model.computeZipf(unit)
         self.view.ZipfTrend.setText( str( round(self.model.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.model.getPolyFit()[1], 3) ) )
-        self.view.ZipfError.setText( str( round( self.model.get_relZipfError(), 3 ) ) )
+        self.view.ZipfError.setText( str( round( self.model.getRelZipfError(), 3 ) ) )
         
     def onZipfPlot(self):
         
@@ -249,10 +254,10 @@ class Presenter(QtGui.QMainWindow):
         dialog= QtGui.QDialog(self)
         plotWidget = pg.PlotWidget(name='Zipf\'s Law Plot')
         
-        logx = self.model.get_logx()
+        logx = self.model.getLogX()
         ab = self.model.getPolyFit()
-        s = ScatterPlotItem(logx, self.model.get_logfreqDist(), size=4, pen=None, brush=pg.mkBrush(255, 255, 255))
-        s.addPoints(logx, self.model.get_logfreqDist())
+        s = ScatterPlotItem(logx, self.model.getLogfreqDist(), size=4, pen=None, brush=pg.mkBrush(255, 255, 255))
+        s.addPoints(logx, self.model.getLogfreqDist())
         plot = plotWidget.plot(logx, [self.model.getPoly(x) for x in logx],  pen=(255,0,0), size=3)
         
         legend = LegendItem((130,60), offset=(500,30))
@@ -428,7 +433,6 @@ class Presenter(QtGui.QMainWindow):
                                                                  unicode(plainText.toPlainText())
                                                                  ))
                 
-                
         layout = QtGui.QVBoxLayout()
         layout.addWidget(plainText)
         layout.addWidget(okBtn)
@@ -440,10 +444,9 @@ class Presenter(QtGui.QMainWindow):
         if hasChanged:
             self.model.setTaggingRules(tagger, rules)
             
+            
     def onFindColl(self):
-
         self.model.findCollocations()
-        
         
         
     def onFindContext(self):
