@@ -97,8 +97,8 @@ class Model():
 #                              'SPECIAL': set(),
 #                              'VERB': set()                             
 #                             }
+        self.__tmpPath = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.parseSyntaxRules()
-        
         
     def initFields(self):
         
@@ -122,10 +122,9 @@ class Model():
 #         self.__tagErrorCount = 0
 #         self.__wrongTags = []
 
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
-        self.__allowedForeign = set(open(path + 'allowedForeign.txt').read().split())
+        self.__allowedForeign = set(codecs.open(self.__tmpPath + 'allowedForeign.txt', encoding='utf-8').read().split())
         self.__ignoredCommon = set([])
-        self.__ignoredColl = set(open(path + 'ignoredColl.txt').read().split())
+        self.__ignoredColl = set(codecs.open(self.__tmpPath + 'ignoredColl.txt', encoding='utf-8').read().split())
         self.__concordanceIndex = None
         #self.__syntaxRules = []
         
@@ -472,10 +471,8 @@ class Model():
             self.__taggedTokens = self.__defTagger.tag(self.__tokens)
 
     def applyManualTagger(self):
-                
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
 
-        for line in codecs.open(path + 'manualTaggingRules.txt', encoding='utf-8').readlines():
+        for line in codecs.open(self.__tmpPath + 'manualTaggingRules.txt', encoding='utf-8').readlines():
             if len(line)>4 and  line[0]!= '#':
                 words = line.split()
                 self.__manualTags[words[0]] = self.__manualTags[words[0]].union(set(words[1:]))
@@ -488,9 +485,8 @@ class Model():
 
     def applyRegexTagger(self):
         
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.__regexTagRules = dict()
-        for line in set(codecs.open(path + 'regexpTaggingRules.txt', encoding='utf-8').readlines()):
+        for line in set(codecs.open(self.__tmpPath + 'regexpTaggingRules.txt', encoding='utf-8').readlines()):
             if len(line)>4 and  line[0]!= '#':
                 words = line.split()
                 self.__regexTagRules[re.compile(unicode(words[1]))] = (words[0], words[2:])
@@ -504,9 +500,8 @@ class Model():
                             self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__regexTagRules[rule][0])
 
     def parseSyntaxRules(self):
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.__syntaxTagRules = []
-        for line in set(codecs.open(path + 'syntaxTaggingRules.txt', encoding='utf-8').readlines()):
+        for line in set(codecs.open(self.__tmpPath + 'syntaxTaggingRules.txt', encoding='utf-8').readlines()):
             if line[0]!= '#':
                 words = line.split()
                 before = []
@@ -580,16 +575,13 @@ class Model():
                     self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__mostCommonTagMap[self.__taggedTokens[i][0]])
         
     def getTaggingRules(self, tagger):
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
-        #if tagger == "manual":
-        f = codecs.open(path + tagger + 'TaggingRules.txt', encoding='utf-8')
+        f = codecs.open(self.__tmpPath + tagger + 'TaggingRules.txt', encoding='utf-8')
         rules = f.read()
         f.close()
         return rules
 
     def setTaggingRules(self, tagger, rules):
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
-        f = codecs.open(path + tagger + 'TaggingRules.txt', 'w', encoding='utf-8' )
+        f = codecs.open(self.__tmpPath + tagger + 'TaggingRules.txt', 'w', encoding='utf-8' )
         f.seek(0)
         f.write(rules)
         f.truncate()
@@ -619,16 +611,10 @@ class Model():
                 
         collocations = FreqDist()
         for sentence in self.__sentences:
-            for i in range(len(sentence)-1):
-                if (sentence[i] not in self.__ignoredColl):
-                    collocations.inc(unicode(sentence[i] + ' ' + sentence[i+1]))
-                else:
-                    i+=2
-                #if (sentence[i], sentence[i+1]) not in collocations.keys():
-                #    collocations[(sentence[i], sentence[i+1])] = 1
-                #else:
-               #     collocations[(sentence[i], sentence[i+1])]+=1
-        print collocations
+            if len(sentence) > 1:
+                for i in range(len(sentence)-1):
+                    if (sentence[i] not in self.__ignoredColl and sentence[i+1] not in self.__ignoredColl):
+                        collocations.inc(unicode(sentence[i] + ' ' + sentence[i+1]))
         return collocations
     
     def applyOccurenceWithGapCountTest(self):
