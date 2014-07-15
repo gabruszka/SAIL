@@ -30,6 +30,7 @@ class Presenter(QtGui.QMainWindow):
         self.view.POSloadBtn.setEnabled(False)
         self.view.zipfFrame.setEnabled(False)
         self.view.tagPOSCorpusRadio.setEnabled(False)
+        self.view.wrongTagsFrame.setEnabled(False)
         
     def connectSlots(self):
         
@@ -56,7 +57,6 @@ class Presenter(QtGui.QMainWindow):
                      QtCore.SIGNAL("toggled(bool)"), 
                      lambda: self.view.showFreqDistBtn.setEnabled(True))
         
-        
         #Patterns
         self.connect(self.view.ignoreListForeignBtn, 
                      QtCore.SIGNAL("clicked()"),
@@ -73,6 +73,7 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.applyTaggerBtn, QtCore.SIGNAL("clicked()"), self.onApplyTagger)
         #self.connect(self.view.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
         self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTagging)
+        self.connect(self.view.previewWrongTagsBtn, QtCore.SIGNAL("clicked()"), self.onPreviewWrongTags)
         
         self.connect(self.view.setManualTagsBtn, 
                      QtCore.SIGNAL("clicked()"),
@@ -83,7 +84,6 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.defineSyntaxBtn, 
                      QtCore.SIGNAL("clicked()"),
                      lambda: self.onSetTaggingRules('syntax'))
-        
         
         #Collocations
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
@@ -395,12 +395,22 @@ class Presenter(QtGui.QMainWindow):
                 self.view.wrongTagsCount.setText(str(self.model.getTagErrorCount()))
                 percentage = 0 if self.model.getTagCount() == 0 else round(self.model.getTagErrorCount()*100/float(self.model.getTagCount()), 2)
                 self.view.wrongTagsPercentage.setText(str(percentage))
+                self.view.wrongTagsFrame.setEnabled(True)
             else:
                 self.view.wrongTagsCount.setText("")
                 self.view.wrongTagsPercentage.setText("")
+                self.view.wrongTagsFrame.setEnabled(False)
                 
     def onPreviewTagging(self):
         self.view.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
+     
+    def onPreviewWrongTags(self):
+        wrongTags = self.model.getWrongTags()
+        if wrongTags != []:
+            title = str(len(wrongTags)) + ' wrong tags'
+            self.showTableDialog(wrongTags, title, ["Word", "Tag"])
+        else:
+            self.noMatchesWindow()
         
     def onSetTaggingRules(self, tagger):
         dialog= QtGui.QDialog(self)

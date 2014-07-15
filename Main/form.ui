@@ -915,7 +915,7 @@
       <widget class="QLabel" name="label_15">
        <property name="geometry">
         <rect>
-         <x>200</x>
+         <x>201</x>
          <y>30</y>
          <width>16</width>
          <height>21</height>
@@ -956,7 +956,7 @@
         <rect>
          <x>0</x>
          <y>50</y>
-         <width>321</width>
+         <width>351</width>
          <height>31</height>
         </rect>
        </property>
@@ -969,7 +969,7 @@
        <widget class="QLabel" name="label_16">
         <property name="geometry">
          <rect>
-          <x>220</x>
+          <x>221</x>
           <y>10</y>
           <width>16</width>
           <height>21</height>
@@ -1021,17 +1021,17 @@
          <bool>true</bool>
         </property>
        </widget>
-       <widget class="QPushButton" name="previewTaggingBtn_2">
+       <widget class="QPushButton" name="previewWrongTagsBtn">
         <property name="geometry">
          <rect>
           <x>240</x>
           <y>8</y>
-          <width>75</width>
+          <width>81</width>
           <height>23</height>
          </rect>
         </property>
         <property name="text">
-         <string>Preview</string>
+         <string>Wrong Tags</string>
         </property>
        </widget>
       </widget>

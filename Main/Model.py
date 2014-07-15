@@ -233,6 +233,10 @@ class Model():
     def getLexicalDiversity(self):
         return self.__lexicalDiversity
         
+    def getWrongTags(self):
+        return self.__wrongTags
+        
+        
     def loadCorpus(self, path):
         
         #badChars = '[\\\*\-\"\`\%\&()\[\]\'\.\,\{\}\d_@:;<>\?\!]'
@@ -427,18 +431,17 @@ class Model():
         self.__wrongTags = []
         if fromPOSCorpus:
             errorCount = 0
-            wrongTags = []
+            #wrongTags = []
             for i  in range(len(self.__taggedTokens)):
                 if self.__taggedTokens[i][1]!=self.__defaultTag:
                     tagCount+=1
                     if self.__taggedTokens[i][1] != self.__taggedCorpus[i][1]:
                         errorCount+=1
-                        wrongTags.append((i, self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]))
-                        self.__wrongTags.append(self.__taggedTokens[i][0])
+                        #wrongTags.append((i, self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]))
+                        self.__wrongTags.append([self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]])
                 else:
                     notTagged.append(self.__taggedTokens[i][0])
                     
-            
             self.__tagErrorCount = errorCount
                    
         else:
@@ -602,12 +605,12 @@ class Model():
         for i in range(len(self.__collWords)-1):
             collocations.append((self.__collWords[i], self.__collWords[i+1]))
         
-        
-        path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
-        output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 
-        self.__collFreqDist = FreqDist(collocations)
-        for item in self.__collFreqDist.items():
-            if item[1]>2:
-                output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
-            
-        output.close()
+#         
+#         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
+#         output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 
+#         self.__collFreqDist = FreqDist(collocations)
+#         for item in self.__collFreqDist.items():
+#             if item[1]>2:
+#                 output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
+#             
+#         output.close()
