@@ -41,7 +41,7 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.view.ignoreListCommonBtn, 
                      QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('foreign', self.model.getIgnoredCommon, self.model.setIgnoredCommon))
+                     lambda: self.onIgnoreList('ignored common words', self.model.getIgnoredCommon, self.model.setIgnoredCommon))
         
         self.connect(self.view.computeZipfBtn, QtCore.SIGNAL("clicked()"), self.onComputeZipf)
         self.connect(self.view.ZipfPlotBtn, QtCore.SIGNAL("clicked()"), self.onZipfPlot)
@@ -51,7 +51,7 @@ class Presenter(QtGui.QMainWindow):
         #Patterns
         self.connect(self.view.ignoreListForeignBtn, 
                      QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('foreign', self.model.getAllowedForeignWordSet, self.model.setAllowedForeignWordSet))
+                     lambda: self.onIgnoreList('ignored foreign words', self.model.getAllowedForeignWordSet, self.model.setAllowedForeignWordSet))
         self.connect(self.view.findForeignBtn, QtCore.SIGNAL("clicked()"), self.onFindForeignWords)
         self.connect(self.view.previewForeignBtn, QtCore.SIGNAL("clicked()"), self.onPreviewForeignWords)
 
@@ -89,8 +89,16 @@ class Presenter(QtGui.QMainWindow):
         
         #Collocations
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
+        self.connect(self.view.ignoreListCollBtn, 
+                     QtCore.SIGNAL("clicked()"),
+                     lambda: self.onIgnoreList('ignored words in collocations', self.model.getIgnoredColl, self.model.setIgnoredColl))
+        self.connect(self.view.showCollBtn, QtCore.SIGNAL("clicked()"), self.onShowCollocations)
+        
+        
+        
         #self.connect(self.view.showCollBtn, QtCore.SIGNAL("clicked()"), self.onShowColl)
         
+        #Context
         self.connect(self.view.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
         
     def onLoadCorpus(self):
@@ -210,7 +218,7 @@ class Presenter(QtGui.QMainWindow):
         fname.close() 
         
     def onDeleteFromCommonSet(self, words):
-        self.model.set_ignored_common(self.model.get_ignored_common().union(set(words)))
+        self.model.setIgnoredCommon(self.model.getIgnoredCommon().union(set(words)))
         
     def noMatchesWindow(self):
         box= QtGui.QMessageBox(self)
@@ -237,12 +245,14 @@ class Presenter(QtGui.QMainWindow):
         if self.view.wordZipfRadio.isChecked():
             unit='word'
             self.view.showFreqDistBtn.setEnabled(False)
-        if self.view.bigramZipfRadio.isChecked():
-            unit='bigram'
-            self.view.showFreqDistBtn.setEnabled(True)
-        if self.view.letterZipfRadio.isChecked():
-            unit='letter'
-            self.view.showFreqDistBtn.setEnabled(True)
+        else:
+            if self.view.bigramZipfRadio.isChecked():
+                unit='bigram'
+                self.view.showFreqDistBtn.setEnabled(True)
+            else:
+                if self.view.letterZipfRadio.isChecked():
+                    unit='letter'
+                    self.view.showFreqDistBtn.setEnabled(True)
         
         self.model.computeZipf(unit)
         self.view.ZipfTrend.setText( str( round(self.model.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.model.getPolyFit()[1], 3) ) )
@@ -286,7 +296,7 @@ class Presenter(QtGui.QMainWindow):
     def onIgnoreList(self, title, getter, setter, func=None):
         
         dialog= QtGui.QDialog(self)
-        dialog.setWindowTitle('List of ' + title + ' ignored words')
+        dialog.setWindowTitle('List of ' + title)
         
         plainText = MyPlainTextEdit(dialog)
         plainText.setPlainText(QtCore.QString('\n'.join(getter())))
@@ -446,8 +456,30 @@ class Presenter(QtGui.QMainWindow):
             
             
     def onFindColl(self):
-        self.model.findCollocations()
+        test = ''
+        if self.view.occurenceCountCollRadio.isChecked():
+            test='occurence'
+        else:
+            if self.view.occurenceGapCollRadio.isChecked():
+                test='occurenceGap'
+            else:
+                if self.view.TStudentCollRadio.isChecked():
+                    test='tStudent'
+                else:
+                    if self.view.PearsonCollRadio.isChecked():
+                        test='pearson'
+                    else:
+                        if self.view.PMICollRadio.isChecked():
+                            test='PMI'
         
+        self.model.findCollocations(test)
+        self.view.showCollBtn.setEnabled(True)
+        
+    def onShowCollocations(self):
+        collocations = self.model.getNCollocations(self.view.collocationsCount.value())
+        title = str(self.view.mostCommonCount.value()) +' Most Common Words'
+        self.showTableDialog(collocations, title, ["Collocation", "Count"])
+
         
     def onFindContext(self):
         if self.view.contextWord.text() != "":

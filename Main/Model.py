@@ -17,14 +17,11 @@ import itertools
 from operator import itemgetter
 
 
-        
 class SyntaxTaggingRule():
     def __init__(self, before, word, after):
         self.before = before
         self.tag = word
         self.after = after
-
-
 
 def customWordtokenize(text):
     
@@ -39,6 +36,7 @@ def customWordtokenize(text):
         text = re.sub(r'[;@#$%&]', r' \g<0> ', text)
         text = re.sub(r'([^\.])(\.)([\]\)}>"\']*)\s*$', r'\1 \2\3 ', text)
         text = re.sub(r'[?!]', r' \g<0> ', text)
+        
 
         #text = re.sub(r"([^'])' ", r"\1 ' ", text)
 
@@ -139,8 +137,8 @@ class Model():
     ################################
         
     ######### GENERAL DATA #########
-    def getWords(self):
-        return self.__words
+    def getSentences(self):
+        return self.__sentences
         
     def getTokens(self):
         return self.__tokens
@@ -248,9 +246,17 @@ class Model():
     def getWrongTags(self):
         return self.__wrongTags
         
-        
-        
+    ####### COLLOCATIONS TAB ######
+    
+    def getIgnoredColl(self):
+        return self.__ignoredColl
 
+    def setIgnoredColl(self, value):
+        self.__ignoredColl = value
+
+    def getNCollocations(self, count):
+        return self.__collocations.items()[0:count]
+    
         
     ################################
     #                              #
@@ -278,8 +284,11 @@ class Model():
             self.initFields()
             
             #SENTENCES
+            # more abbreviations with dots
             punkt_param = PunktParameters()
             punkt_param.abbrev_types = set(['dr', 'vs', 'n', 'v', 'etc', 'art', 'p', 'Cost', 'ss', 'pag'])
+            
+            punkt_param = PunktParameters()
             sentence_splitter = PunktSentenceTokenizer(punkt_param)
             text = re.sub(ur'[\'\<\>`’]', ' ', self.__rawText)
             #text = re.sub('(\d+)', r' \1 ', text)
@@ -287,12 +296,11 @@ class Model():
             
             #TOKENS
             self.__tokens = list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))
-            
             wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
-            #wordTokenizer = RegexpTokenizer('\W+', re.UNICODE)
             sentences = [wordTokenizer.tokenize(sent.lower()) for sent in sentences if len(wordTokenizer.tokenize(sent)) > 0]
             words =  list(itertools.chain(*sentences))
             #self.__words = words
+            self.__sentences = sentences
             
             self.__avgSentLength = round(np.mean( [len(sent) for sent in sentences]), 3)
             self.__avgWordLength = round(np.mean( [len(word) for word in words]), 3)
@@ -589,20 +597,54 @@ class Model():
         
     ########## COLLOCATIONS TAB ############
     
-    def findCollocations(self):
-        self.__collWords = []
-        allowed = re.compile('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
-        special = re.compile('[&\"\*\+%\-/\.\,\?\:;\(\)!]+')
+    def findCollocations(self, test):
+        self.__collocations = dict()
+
+        if test == 'occurence':
+            self.__collocations = self.applyOccurenceCountTest()
+            
+        if test == 'occurenceGap':
+            self.__collocations = self.applyOccurenceWithGapCountTest()
+            
+        if test == 'tStudent':
+            self.__collocations = self.applyTStudentTest()
+            
+        if test == 'pearson':
+            self.__collocations = self.applyPearsonTest()
+            
+        if test == 'PMI':
+            self.__collocations = self.applyPMITest()
+
+    def applyOccurenceCountTest(self):
+                
+        collocations = FreqDist()
+        for sentence in self.__sentences:
+            for i in range(len(sentence)-1):
+                if (sentence[i] not in self.__ignoredColl):
+                    collocations.inc(unicode(sentence[i] + ' ' + sentence[i+1]))
+                else:
+                    i+=2
+                #if (sentence[i], sentence[i+1]) not in collocations.keys():
+                #    collocations[(sentence[i], sentence[i+1])] = 1
+                #else:
+               #     collocations[(sentence[i], sentence[i+1])]+=1
+        print collocations
+        return collocations
+    
+    def applyOccurenceWithGapCountTest(self):
+        return []
+    
+    def applyTStudentTest(self):
+        return []
+    
+    def applyPearsonTest(self):
+        return []
+    
+    def applyPMITest(self):
+        return []
+    
+
         
-        for token in self.__tokens:
-            #if token.lower() not in self.__ignoredColl and allowed.match(token):
-            token = token.lower()
-            if not special.match(token):
-                self.__collWords.append(token)
-        
-        collocations = []
-        for i in range(len(self.__collWords)-1):
-            collocations.append((self.__collWords[i], self.__collWords[i+1]))
         
 #         
 #         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   

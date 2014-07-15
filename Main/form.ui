@@ -72,7 +72,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>4</number>
+     <number>3</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideMiddle</enum>
@@ -1108,7 +1108,7 @@
       <property name="title">
        <string>Method</string>
       </property>
-      <widget class="QRadioButton" name="occurenceCountColl">
+      <widget class="QRadioButton" name="occurenceCountCollRadio">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1124,7 +1124,7 @@
         <bool>true</bool>
        </property>
       </widget>
-      <widget class="QRadioButton" name="occurenceGapColl">
+      <widget class="QRadioButton" name="occurenceGapCollRadio">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1160,7 +1160,7 @@
         </rect>
        </property>
       </widget>
-      <widget class="QRadioButton" name="TStudentColl">
+      <widget class="QRadioButton" name="TStudentCollRadio">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1173,7 +1173,7 @@
         <string>T Student Test</string>
        </property>
       </widget>
-      <widget class="QRadioButton" name="PearsonColl">
+      <widget class="QRadioButton" name="PearsonCollRadio">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1186,7 +1186,7 @@
         <string>Pearson Test</string>
        </property>
       </widget>
-      <widget class="QRadioButton" name="PMIColl">
+      <widget class="QRadioButton" name="PMICollRadio">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1197,6 +1197,19 @@
        </property>
        <property name="text">
         <string>PMI Test</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="ignoreListCollBtn">
+       <property name="geometry">
+        <rect>
+         <x>270</x>
+         <y>20</y>
+         <width>75</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Ignore List</string>
        </property>
       </widget>
      </widget>
@@ -1236,6 +1249,25 @@
       </property>
       <property name="text">
        <string>Show</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="collocationsCount">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>190</y>
+        <width>51</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>10000</number>
+      </property>
+      <property name="value">
+       <number>100</number>
       </property>
      </widget>
     </widget>
