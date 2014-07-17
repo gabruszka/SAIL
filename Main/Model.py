@@ -11,11 +11,16 @@ import math
 from nltk import FreqDist
 from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 from nltk.tokenize import RegexpTokenizer
+from nltk.collocations import BigramCollocationFinder
+from nltk.util import ingrams
 import nltk
 import codecs
 import itertools
 from operator import itemgetter
 
+class MyBigramCollFinder(BigramCollocationFinder):
+    def getBigramFd(self):
+        return self.ngram_fd
 
 class SyntaxTaggingRule():
     def __init__(self, before, word, after):
@@ -253,9 +258,9 @@ class Model():
     def setIgnoredColl(self, value):
         self.__ignoredColl = value
 
-    def getNCollocations(self, count):
-        return self.__collocations.items()[0:count]
-    
+    def getCollocations(self):
+        #return [(unicode(x[0]+' '+x[1]),y) for x,y in self.__collocations]
+        return self.__collocations
         
     ################################
     #                              #
@@ -295,10 +300,15 @@ class Model():
             
             #TOKENS
             self.__tokens = list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))
-            wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
+            #wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
+            
+            
+            wordTokenizer = RegexpTokenizer('[\w]+')
+            
+            
             sentences = [wordTokenizer.tokenize(sent.lower()) for sent in sentences if len(wordTokenizer.tokenize(sent)) > 0]
             words =  list(itertools.chain(*sentences))
-            #self.__words = words
+            self.__words = words
             self.__sentences = sentences
             
             self.__avgSentLength = round(np.mean( [len(sent) for sent in sentences]), 3)
@@ -309,6 +319,7 @@ class Model():
         
             ### resetting members
             self.__concordanceIndex = None
+            self.__bigrams = None
                  
         return encoding
     
@@ -589,49 +600,73 @@ class Model():
         
     ########## COLLOCATIONS TAB ############
     
-    def findCollocations(self, test):
-        self.__collocations = dict()
+    def findCollocations(self, test, window, min_freq, count):
+        
+        if self.__bigrams == None or self.__currentWindow != window:
+            self.prepareBigrams(window)
+            #self.__bigrams = BigramCollocationFinder.from_words(self.__words, window)
+            
+        self.__bigrams.apply_freq_filter(min_freq)
+        self.__currentWindow = window
+        
+        bfd = self.__bigrams.getBigramFd()
+        scored_bigrams = []
+        bigram_measures = nltk.collocations.BigramAssocMeasures()
 
-        if test == 'occurence':
-            self.__collocations = self.applyOccurenceCountTest()
+        if test == 'Raw Frequency':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.raw_freq)[:count]
             
-        if test == 'occurenceGap':
-            self.__collocations = self.applyOccurenceWithGapCountTest()
+        if test == 'T Student Test':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.student_t)[:count]
             
-        if test == 'tStudent':
-            self.__collocations = self.applyTStudentTest()
+        if test == 'Pearson Test':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.chi_sq)[:count]
             
-        if test == 'pearson':
-            self.__collocations = self.applyPearsonTest()
+        if test == 'Pointwise Mutual Information':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.pmi)[:count]
             
-        if test == 'PMI':
-            self.__collocations = self.applyPMITest()
+        if test == 'Dice':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.dice)[:count]
+            
+        if test == 'Jaccard':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.jaccard)[:count]
 
-    def applyOccurenceCountTest(self):
-                
-        collocations = FreqDist()
+        if test == 'Likelihood Ratio':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.likelihood_ratio)[:count]
+            
+        if test == 'Variant of Mutual Information':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.mi_like)[:count]
+            
+        if test == 'Poisson Stirling':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.poisson_stirling)[:count]
+            
+        if test == 'Phi square':
+            scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.phi_sq)[:count]
+            
+        self.__collocations = [[unicode(x[0]+' '+x[1]), y, bfd[x]] for x,y in scored_bigrams]
+
+    def prepareBigrams(self, window_size):
+        wfd = FreqDist()
+        bfd = FreqDist()
+
         for sentence in self.__sentences:
             if len(sentence) > 1:
-                for i in range(len(sentence)-1):
-                    if (sentence[i] not in self.__ignoredColl and sentence[i+1] not in self.__ignoredColl):
-                        collocations.inc(unicode(sentence[i] + ' ' + sentence[i+1]))
-        return collocations
-    
-    def applyOccurenceWithGapCountTest(self):
-        return []
-    
-    def applyTStudentTest(self):
-        return []
-    
-    def applyPearsonTest(self):
-        return []
-    
-    def applyPMITest(self):
-        return []
-    
+                for window in ingrams(sentence, window_size, pad_right=True):
+                    if window[0] not in self.__ignoredColl:
+                        w1 = window[0]
+                        try:
+                            window = window[:list(window).index(w1, 1)]
+                        except ValueError:
+                            pass
+                        wfd.inc(w1)
+                        for w2 in set(window[1:]):
+                            if w2 is not None and w2 not in self.__ignoredColl:
+                                bfd.inc((w1, w2))
+        
+        
+        self.__bigrams = MyBigramCollFinder(wfd, bfd)
+        
 
-        
-        
 #         
 #         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
 #         output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 

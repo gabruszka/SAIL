@@ -216,7 +216,32 @@ class Presenter(QtGui.QMainWindow):
         fname = codecs.open(filename, 'w', encoding='utf-8')
         fname.writelines(data)
         fname.close() 
+               
+    def onIgnoreList(self, title, getter, setter, func=None):
         
+        dialog= QtGui.QDialog(self)
+        dialog.setWindowTitle('List of ' + title)
+        
+        plainText = MyPlainTextEdit(dialog)
+        plainText.setPlainText(QtCore.QString('\n'.join(getter())))
+        plainText.textChanged.connect(plainText.listChanged)
+        
+        okBtn = QtGui.QPushButton(dialog)
+        okBtn.setText('Apply')
+        okBtn.clicked.connect(dialog.close)
+        okBtn.clicked.connect(lambda: self.onIgnoredWordSetClose(plainText.hasChanged, 
+                                                                 set(str(plainText.toPlainText()).split()),
+                                                                 getter,
+                                                                 setter,
+                                                                 func))
+        
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(plainText)
+        layout.addWidget(okBtn)
+        
+        dialog.setLayout(layout)
+        dialog.show()
+            
     def onDeleteFromCommonSet(self, words):
         self.model.setIgnoredCommon(self.model.getIgnoredCommon().union(set(words)))
         
@@ -292,32 +317,7 @@ class Presenter(QtGui.QMainWindow):
             title = 'Frequency Distribution of letters'
             unit = 'Letter'
         self.showTableDialog(freqDistData, title, [unit, "Count"])
-        
-    def onIgnoreList(self, title, getter, setter, func=None):
-        
-        dialog= QtGui.QDialog(self)
-        dialog.setWindowTitle('List of ' + title)
-        
-        plainText = MyPlainTextEdit(dialog)
-        plainText.setPlainText(QtCore.QString('\n'.join(getter())))
-        plainText.textChanged.connect(plainText.listChanged)
-        
-        okBtn = QtGui.QPushButton(dialog)
-        okBtn.setText('Apply')
-        okBtn.clicked.connect(dialog.close)
-        okBtn.clicked.connect(lambda: self.onIgnoredWordSetClose(plainText.hasChanged, 
-                                                                 set(str(plainText.toPlainText()).split()),
-                                                                 getter,
-                                                                 setter,
-                                                                 func))
-        
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(plainText)
-        layout.addWidget(okBtn)
-        
-        dialog.setLayout(layout)
-        dialog.show()
-        
+ 
     def onIgnoredWordSetClose(self, hasChanged, newSet, getter, setter, func):
         if hasChanged:
             if getter() != newSet:
@@ -350,8 +350,7 @@ class Presenter(QtGui.QMainWindow):
             self.showTableDialog(foreignWords, title, ["Word", "Count"], self.onDeleteFromForeignSet)
         else:
             self.noMatchesWindow()
-            
-        
+             
     def onFindPattern(self):
         if self.view.patternTxt.text() != "":
             if self.model.findPatternWords(self.view.patternTxt.text()) == 0:
@@ -367,8 +366,7 @@ class Presenter(QtGui.QMainWindow):
                 box.setMinimumHeight(300)
                 box.setWindowTitle("Error")
                 box.exec_()
-
-            
+         
     def onPreviewPatternWords(self):
     
         patternWords = self.model.getPatternWords()
@@ -377,8 +375,7 @@ class Presenter(QtGui.QMainWindow):
             self.showTableDialog(patternWords, title, ["Word", "Count"])
         else:
             self.noMatchesWindow()
-        
-        
+               
     def onPOSbrowse(self):
         self.view.POScorpusPath.setText(QtGui.QFileDialog.getOpenFileName())
         self.view.POSloadBtn.setEnabled(True)
@@ -453,34 +450,23 @@ class Presenter(QtGui.QMainWindow):
     def onClosingSetTaggingRules(self, hasChanged, tagger, rules):
         if hasChanged:
             self.model.setTaggingRules(tagger, rules)
-            
-            
+                  
     def onFindColl(self):
-        test = ''
-        if self.view.occurenceCountCollRadio.isChecked():
-            test='occurence'
-        else:
-            if self.view.occurenceGapCollRadio.isChecked():
-                test='occurenceGap'
-            else:
-                if self.view.TStudentCollRadio.isChecked():
-                    test='tStudent'
-                else:
-                    if self.view.PearsonCollRadio.isChecked():
-                        test='pearson'
-                    else:
-                        if self.view.PMICollRadio.isChecked():
-                            test='PMI'
-        
-        self.model.findCollocations(test)
+
+        self.model.findCollocations(self.view.methodBox.currentText(), 
+                                    int(self.view.collWindowBox.currentText()),
+                                    self.view.minFreqColl.value(),
+                                    self.view.collocationsCount.value())
         self.view.showCollBtn.setEnabled(True)
+        self.currentCollMethod = self.view.methodBox.currentText()
         
     def onShowCollocations(self):
-        collocations = self.model.getNCollocations(self.view.collocationsCount.value())
-        title = str(self.view.mostCommonCount.value()) +' Most Common Words'
-        self.showTableDialog(collocations, title, ["Collocation", "Count"])
-
-        
+        collocations = self.model.getCollocations()
+        title = str(self.view.mostCommonCount.value()) +' best collocations found by ' + self.currentCollMethod
+        self.showTableDialog(collocations,
+                             title,
+                             ["Collocation", "Score", "Count"])
+     
     def onFindContext(self):
         if self.view.contextWord.text() != "":
             contexts = self.model.findWordContext(self.view.contextWord.text(), self.view.contextCount.value(), self.view.contextLength.value())
