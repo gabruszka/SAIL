@@ -601,10 +601,9 @@ class Model():
     ########## COLLOCATIONS TAB ############
     
     def findCollocations(self, test, window, min_freq, count, searchedWord):
-        print searchedWord
+
         if self.__bigrams == None or self.__currentWindow != window or self.__currentSearchedWord != searchedWord:
             self.prepareBigrams(window, searchedWord)
-            #self.__bigrams = BigramCollocationFinder.from_words(self.__words, window)
             
         self.__bigrams.apply_freq_filter(min_freq)
         self.__currentWindow = window
@@ -613,7 +612,7 @@ class Model():
         bfd = self.__bigrams.getBigramFd()
         scored_bigrams = []
         bigram_measures = nltk.collocations.BigramAssocMeasures()
-        print bfd
+
         if test == 'Raw Frequency':
             scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.raw_freq)[:count]
             
