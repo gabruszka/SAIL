@@ -600,19 +600,20 @@ class Model():
         
     ########## COLLOCATIONS TAB ############
     
-    def findCollocations(self, test, window, min_freq, count):
-        
-        if self.__bigrams == None or self.__currentWindow != window:
-            self.prepareBigrams(window)
+    def findCollocations(self, test, window, min_freq, count, searchedWord):
+        print searchedWord
+        if self.__bigrams == None or self.__currentWindow != window or self.__currentSearchedWord != searchedWord:
+            self.prepareBigrams(window, searchedWord)
             #self.__bigrams = BigramCollocationFinder.from_words(self.__words, window)
             
         self.__bigrams.apply_freq_filter(min_freq)
         self.__currentWindow = window
+        self.__currentSearchedWord = searchedWord
         
         bfd = self.__bigrams.getBigramFd()
         scored_bigrams = []
         bigram_measures = nltk.collocations.BigramAssocMeasures()
-
+        print bfd
         if test == 'Raw Frequency':
             scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.raw_freq)[:count]
             
@@ -645,38 +646,43 @@ class Model():
             
         self.__collocations = [[unicode(x[0]+' '+x[1]), y, bfd[x]] for x,y in scored_bigrams]
 
-    def prepareBigrams(self, window_size):
+    def prepareBigrams(self, window_size, word):
         wfd = FreqDist()
         bfd = FreqDist()
-
-        for sentence in self.__sentences:
-            if len(sentence) > 1:
-                for window in ingrams(sentence, window_size, pad_right=True):
-                    if window[0] not in self.__ignoredColl:
-                        w1 = window[0]
-                        try:
-                            window = window[:list(window).index(w1, 1)]
-                        except ValueError:
-                            pass
-                        wfd.inc(w1)
-                        for w2 in set(window[1:]):
-                            if w2 is not None and w2 not in self.__ignoredColl:
-                                bfd.inc((w1, w2))
         
-        
+        if word == '':
+            for sentence in self.__sentences:
+                if len(sentence) > 1:
+                    for window in ingrams(sentence, window_size, pad_right=True):
+                        if window[0] not in self.__ignoredColl:
+                            w1 = window[0]
+                            try:
+                                window = window[:list(window).index(w1, 1)]
+                            except ValueError:
+                                pass
+                            wfd.inc(w1)
+                            for w2 in set(window[1:]):
+                                if w2 is not None and w2 not in self.__ignoredColl:
+                                    bfd.inc((w1, w2))
+        else:
+            for sentence in self.__sentences:
+                if len(sentence) > 1:
+                    for window in ingrams(sentence, window_size, pad_right=True):
+                        if window[0] not in self.__ignoredColl:
+                            w1 = window[0]
+                            try:
+                                window = window[:list(window).index(w1, 1)]
+                            except ValueError:
+                                pass
+                            bigramOK = False
+                            for w2 in set(window[1:]):
+                                if w2 is not None and w2 not in self.__ignoredColl and (w1 == word or w2==word):
+                                    bfd.inc((w1, w2))
+                                    bigramOK = True
+                            if bigramOK:
+                                wfd.inc(w1)
+                                
         self.__bigrams = MyBigramCollFinder(wfd, bfd)
-        
-
-#         
-#         path = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'   
-#         output = codecs.open(path+'collocations.txt', 'w', encoding='utf-8') 
-#         self.__collFreqDist = FreqDist(collocations)
-#         for item in self.__collFreqDist.items():
-#             if item[1]>2:
-#                 output.write(unicode(item[0][0]) + ' ' + unicode(item[0][1]) + ' ' + unicode(item[1]) + '\n')
-#             
-#         output.close()
-
 
     ######### CONTEXT TAB ###########
     def findWordContext(self, word, lines=25, wordCount=2):

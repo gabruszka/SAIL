@@ -456,7 +456,9 @@ class Presenter(QtGui.QMainWindow):
         self.model.findCollocations(self.view.methodBox.currentText(), 
                                     int(self.view.collWindowBox.currentText()),
                                     self.view.minFreqColl.value(),
-                                    self.view.collocationsCount.value())
+                                    self.view.collocationsCount.value(),
+                                    self.view.searchedWordColl.text() 
+                                    if self.view.checkBoxWordColl.checkState() else '')
         self.view.showCollBtn.setEnabled(True)
         self.currentCollMethod = self.view.methodBox.currentText()
         
