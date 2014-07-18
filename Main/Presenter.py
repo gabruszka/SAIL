@@ -91,7 +91,7 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.findCollBtn, QtCore.SIGNAL("clicked()"), self.onFindColl)
         self.connect(self.view.ignoreListCollBtn, 
                      QtCore.SIGNAL("clicked()"),
-                     lambda: self.onIgnoreList('ignored words in collocations', self.model.getIgnoredColl, self.model.setIgnoredColl))
+                     lambda: self.onIgnoreList('ignored words in collocations', self.model.getIgnoredColl, self.model.setIgnoredColl, self.model.collIgnoreListHasChanged))
         self.connect(self.view.showCollBtn, QtCore.SIGNAL("clicked()"), self.onShowCollocations)
         
         
@@ -454,7 +454,7 @@ class Presenter(QtGui.QMainWindow):
     def onFindColl(self):
 
         self.model.findCollocations(self.view.methodBox.currentText(), 
-                                    int(self.view.collWindowBox.currentText()),
+                                    int(self.view.collWindowBox.currentText())+2,
                                     self.view.minFreqColl.value(),
                                     self.view.collocationsCount.value(),
                                     self.view.searchedWordColl.text() 
@@ -462,6 +462,8 @@ class Presenter(QtGui.QMainWindow):
         self.view.showCollBtn.setEnabled(True)
         self.currentCollMethod = self.view.methodBox.currentText()
         
+
+    
     def onShowCollocations(self):
         collocations = self.model.getCollocations()
         title = str(self.view.mostCommonCount.value()) +' best collocations found by ' + self.currentCollMethod

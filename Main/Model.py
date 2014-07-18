@@ -599,15 +599,19 @@ class Model():
         f.close()
         
     ########## COLLOCATIONS TAB ############
-    
-    def findCollocations(self, test, window, min_freq, count, searchedWord):
+    def collIgnoreListHasChanged(self):
+        self.__collIgnoredListChanged = True
+        
+    def findCollocations(self, test, window, minFreq, count, searchedWord):
 
-        if self.__bigrams == None or self.__currentWindow != window or self.__currentSearchedWord != searchedWord:
+        if self.__bigrams == None or self.__collIgnoredListChanged or self.__collCurrentWindow != window or self.__collCurrentSearchedWord != searchedWord or self.__collCurrentMinFreq != minFreq:
             self.prepareBigrams(window, searchedWord)
+            self.__collIgnoredListChanged = False
             
-        self.__bigrams.apply_freq_filter(min_freq)
-        self.__currentWindow = window
-        self.__currentSearchedWord = searchedWord
+        self.__bigrams.apply_freq_filter(minFreq)
+        self.__collCurrentWindow = window
+        self.__collCurrentSearchedWord = searchedWord
+        self.__collCurrentMinFreq = minFreq
         
         bfd = self.__bigrams.getBigramFd()
         scored_bigrams = []
@@ -619,7 +623,7 @@ class Model():
         if test == 'T Student Test':
             scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.student_t)[:count]
             
-        if test == 'Pearson Test':
+        if test == 'Pearson\'s Chi Square Test':
             scored_bigrams = self.__bigrams.score_ngrams(bigram_measures.chi_sq)[:count]
             
         if test == 'Pointwise Mutual Information':
