@@ -129,7 +129,7 @@ class Model():
 
         self.__allowedForeign = set(codecs.open(self.__tmpPath + 'allowedForeign.txt', encoding='utf-8').read().split())
         self.__ignoredCommon = set([])
-        self.__ignoredColl = set(codecs.open(self.__tmpPath + 'ignoredColl.txt', encoding='utf-8').read().split())
+        self.__ignoredColl = set(codecs.open(self.__tmpPath + 'words_ignored_in_collocations.txt', encoding='utf-8').read().split())
         self.__concordanceIndex = None
         #self.__syntaxRules = []
         
