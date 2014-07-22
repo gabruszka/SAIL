@@ -1,7 +1,7 @@
 '''
 Created on 07-02-2014
 
-@author: Gabco
+@author: Gabriela Pastuszka
 '''
 
 from PyQt4 import QtCore, QtGui

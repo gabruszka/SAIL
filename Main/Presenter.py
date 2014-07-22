@@ -1,7 +1,7 @@
 '''
 Created on 03-11-2013
 
-@author: Gabco
+@author: Gabriela Pastuszka
 '''
 import pyqtgraph as pg
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem

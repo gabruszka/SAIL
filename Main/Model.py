@@ -3,7 +3,7 @@
 '''
 Created on 03-11-2013
 
-@author: Gabco
+@author: Gabriela Pastuszka
 '''
 import re
 import numpy as np
@@ -128,8 +128,8 @@ class Model():
 #         self.__wrongTags = []
 
         self.__allowedForeign = set(codecs.open(self.__tmpPath + 'allowedForeign.txt', encoding='utf-8').read().split())
-        self.__ignoredCommon = set([])
-        self.__ignoredColl = set(codecs.open(self.__tmpPath + 'words_ignored_in_collocations.txt', encoding='utf-8').read().split())
+        self.__ignoredCommon = set(codecs.open(self.__tmpPath + 'commonIgnoredWords.txt', encoding='utf-8').read().split())
+        self.__ignoredColl = set(codecs.open(self.__tmpPath + 'wordsIgnoredInCollocations.txt', encoding='utf-8').read().split())
         self.__concordanceIndex = None
         #self.__syntaxRules = []
         
