@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1050</width>
-    <height>584</height>
+    <width>394</width>
+    <height>619</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -39,7 +39,7 @@
     <property name="geometry">
      <rect>
       <x>5</x>
-      <y>146</y>
+      <y>176</y>
       <width>381</width>
       <height>401</height>
      </rect>
@@ -72,7 +72,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideMiddle</enum>
@@ -1526,7 +1526,7 @@
      <property name="geometry">
       <rect>
        <x>240</x>
-       <y>20</y>
+       <y>18</y>
        <width>60</width>
        <height>23</height>
       </rect>
@@ -1539,7 +1539,7 @@
      <property name="geometry">
       <rect>
        <x>310</x>
-       <y>20</y>
+       <y>18</y>
        <width>60</width>
        <height>23</height>
       </rect>
@@ -1714,30 +1714,30 @@
      </property>
     </widget>
    </widget>
-   <widget class="QPlainTextEdit" name="corpusText">
+   <widget class="QPushButton" name="showCorpusTextBtn">
     <property name="geometry">
      <rect>
-      <x>390</x>
-      <y>5</y>
-      <width>321</width>
-      <height>541</height>
+      <x>10</x>
+      <y>147</y>
+      <width>111</width>
+      <height>23</height>
      </rect>
     </property>
-    <property name="readOnly">
-     <bool>true</bool>
+    <property name="text">
+     <string>Show Corpus Text</string>
     </property>
    </widget>
-   <widget class="QPlainTextEdit" name="tokenizedText">
+   <widget class="QPushButton" name="showTokensBtn">
     <property name="geometry">
      <rect>
-      <x>720</x>
-      <y>5</y>
-      <width>321</width>
-      <height>541</height>
+      <x>130</x>
+      <y>147</y>
+      <width>91</width>
+      <height>23</height>
      </rect>
     </property>
-    <property name="readOnly">
-     <bool>true</bool>
+    <property name="text">
+     <string>Show Tokens</string>
     </property>
    </widget>
   </widget>
@@ -1746,7 +1746,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1050</width>
+     <width>394</width>
      <height>21</height>
     </rect>
    </property>

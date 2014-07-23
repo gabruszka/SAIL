@@ -88,20 +88,6 @@ class Model():
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
         self.__tags = {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}
         self.__manualTags = {tag: set() for tag in self.__tags}
-#                              'ADJ': set(),
-#                              'ADV': set(),
-#                              'ART': set(),
-#                              'CONJ': set(),
-#                              'DPREP': set(),
-#                              'NOUN': set(),
-#                              'NUM': set(),
-#                              'PREP': set(),
-#                              'PUNCT': set(),
-#                              'PRON': set(),
-#                              'PRONVERB': set(),
-#                              'SPECIAL': set(),
-#                              'VERB': set()                             
-#                             }
         self.__tmpPath = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
         self.parseSyntaxRules()
         
@@ -122,7 +108,7 @@ class Model():
         
         #POS tagging
 #         self.__taggedCorpus = []
-#         self.__taggedTokens = []
+#         self.__POStokens = []
 #         self.__tagCount = 0
 #         self.__tagErrorCount = 0
 #         self.__wrongTags = []
@@ -131,7 +117,7 @@ class Model():
         self.__ignoredCommon = set(codecs.open(self.__tmpPath + 'commonIgnoredWords.txt', encoding='utf-8').read().split())
         self.__ignoredColl = set(codecs.open(self.__tmpPath + 'wordsIgnoredInCollocations.txt', encoding='utf-8').read().split())
         self.__concordanceIndex = None
-        #self.__syntaxRules = []
+        
         
         
     ################################
@@ -233,10 +219,10 @@ class Model():
     
     ### PARTS OF SPEECH TAGGING TAB
     def getTaggedTokens(self):
-        return self.__taggedTokens
+        return self.__POStokens
         
-    def getTaggedTokensCount(self):
-        return len(self.__taggedTokens)
+    def getTokensCount(self):
+        return len(self.__tokens)
         
     def getTagCount(self):
         return self.__tagCount
@@ -299,12 +285,10 @@ class Model():
             sentences = sentence_splitter.tokenize(text)
             
             #TOKENS
-            self.__tokens = list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))
+            self.__tokens = [[token, ''] for token in list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))]
+            print self.__tokens[0:10]
             #wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
-            
-            
             wordTokenizer = RegexpTokenizer('[\w]+')
-            
             
             sentences = [wordTokenizer.tokenize(sent.lower()) for sent in sentences if len(wordTokenizer.tokenize(sent)) > 0]
             words =  list(itertools.chain(*sentences))
@@ -315,11 +299,16 @@ class Model():
             self.__avgWordLength = round(np.mean( [len(word) for word in words]), 3)
             self.__freqDist = FreqDist(words)
             self.__wordCount = len(words)
-            self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 3)
+            self.__lexicalDiversity = round(len(words)/float(len(self.__freqDist.items())), 3)
+            
+            
+            #self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 3)
         
             ### resetting members
             self.__concordanceIndex = None
             self.__bigrams = None
+            print "model.loadCorpus done"
+                 
                  
         return encoding
     
@@ -441,13 +430,13 @@ class Model():
             
         for tagger in taggers:
             if tagger == 'manual':
-                self.applyManualTagger()
+                self.applyManualTagger(self.__POStokens if fromPOSCorpus else self.__tokens)
             if tagger == 'regex':
-                self.applyRegexTagger()
+                self.applyRegexTagger(self.__POStokens if fromPOSCorpus else self.__tokens)
             if tagger == 'syntax':
-                self.applySyntaxTagger()
+                self.applySyntaxTagger(self.__POStokens if fromPOSCorpus else self.__tokens)
             if tagger == 'probability':
-                self.applyProbabilityTagger()
+                self.applyProbabilityTagger(self.__POStokens if fromPOSCorpus else self.__tokens)
                 
         tagCount = 0
         notTagged = []
@@ -455,46 +444,46 @@ class Model():
         if fromPOSCorpus:
             errorCount = 0
             #wrongTags = []
-            for i  in range(len(self.__taggedTokens)):
-                if self.__taggedTokens[i][1]!=self.__defaultTag:
+            for i  in range(len(self.__POStokens)):
+                if self.__POStokens[i][1]!=self.__defaultTag:
                     tagCount+=1
-                    if self.__taggedTokens[i][1] != self.__taggedCorpus[i][1]:
+                    if self.__POStokens[i][1] != self.__taggedCorpus[i][1]:
                         errorCount+=1
-                        #wrongTags.append((i, self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]))
-                        self.__wrongTags.append([self.__taggedTokens[i][0], self.__taggedTokens[i][1], self.__taggedCorpus[i][1]])
+                        #wrongTags.append((i, self.__POStokens[i][0], self.__POStokens[i][1], self.__taggedCorpus[i][1]))
+                        self.__wrongTags.append([self.__POStokens[i][0], self.__POStokens[i][1], self.__taggedCorpus[i][1]])
                 else:
-                    notTagged.append(self.__taggedTokens[i][0])
+                    notTagged.append(self.__POStokens[i][0])
                     
             self.__tagErrorCount = errorCount
                    
         else:
-            for token in self.__taggedTokens:
+            for token in self.__tokens:
                 if token[1]!=self.__defaultTag:
                     tagCount+=1
                 else:
                     notTagged.append(token[0])
         self.__tagCount = tagCount
             
-    def resetTags(self, fromPOSCorpus):
+    def resetTags(self, fromPOSCorpus=False):
         if fromPOSCorpus:
-            self.__taggedTokens = self.__defTagger.tag([token[0] for token in self.__taggedCorpus])
+            self.__POStokens = self.__defTagger.tag([token[0] for token in self.__taggedCorpus])
         else:
-            self.__taggedTokens = self.__defTagger.tag(self.__tokens)
+            self.__tokens = self.__defTagger.tag([token[0] for token in self.__tokens])
 
-    def applyManualTagger(self):
+    def applyManualTagger(self, tokens):
 
         for line in codecs.open(self.__tmpPath + 'manualTaggingRules.txt', encoding='utf-8').readlines():
             if len(line)>4 and  line[0]!= '#':
                 words = line.split()
                 self.__manualTags[words[0]] = self.__manualTags[words[0]].union(set(words[1:]))
             
-        for i in range(len(self.__taggedTokens)):
-            if self.__taggedTokens[i][1] == self.__defaultTag:
+        for i in range(len(tokens)):
+            if tokens[i][1] == self.__defaultTag:
                 for tag in self.__manualTags:
-                    if self.__taggedTokens[i][0].lower() in self.__manualTags[tag]:
-                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], tag)
+                    if tokens[i][0].lower() in self.__manualTags[tag]:
+                        tokens[i] = (tokens[i][0], tag)
 
-    def applyRegexTagger(self):
+    def applyRegexTagger(self, tokens):
         
         self.__regexTagRules = dict()
         for line in set(codecs.open(self.__tmpPath + 'regexpTaggingRules.txt', encoding='utf-8').readlines()):
@@ -502,13 +491,13 @@ class Model():
                 words = line.split()
                 self.__regexTagRules[re.compile(unicode(words[1]))] = (words[0], words[2:])
         
-        for i in range(len(self.__taggedTokens)):
-            if self.__taggedTokens[i][1] == self.__defaultTag:
+        for i in range(len(tokens)):
+            if tokens[i][1] == self.__defaultTag:
                 for rule in self.__regexTagRules:
-                    if self.__taggedTokens[i][1] == self.__defaultTag:
-                        word = self.__taggedTokens[i][0].lower()
+                    if tokens[i][1] == self.__defaultTag:
+                        word = tokens[i][0].lower()
                         if word not in self.__regexTagRules[rule][1] and rule.match(word):
-                            self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__regexTagRules[rule][0])
+                            tokens[i] = (tokens[i][0], self.__regexTagRules[rule][0])
 
     def parseSyntaxRules(self):
         self.__syntaxTagRules = []
@@ -529,23 +518,23 @@ class Model():
                 if (insertedTag!="" and (before!=[] or after!=[])):
                     self.__syntaxTagRules.append(SyntaxTaggingRule(before, insertedTag, after))
 
-    def applySyntaxTagger(self):
+    def applySyntaxTagger(self, tokens):
         self.parseSyntaxRules()
-        for i in range(len(self.__taggedTokens)):
-            if self.__taggedTokens[i][1] == self.__defaultTag:
+        for i in range(len(tokens)):
+            if tokens[i][1] == self.__defaultTag:
                 
                 for rule in self.__syntaxTagRules:
                     #rule lenghts check
-                    if i >= len(rule.before) and len(self.__taggedTokens) - i >= len(rule.after):
+                    if i >= len(rule.before) and len(tokens) - i >= len(rule.after):
                         poniechaj = False
                         tagsCount = len(rule.before)
 
                         for before_it in range(tagsCount):
                             if rule.before[before_it] in self.__tags:
-                                if self.__taggedTokens[i - tagsCount + before_it][1] != rule.before[before_it]:
+                                if tokens[i - tagsCount + before_it][1] != rule.before[before_it]:
                                     poniechaj = True
                             else:
-                                if self.__taggedTokens[i - tagsCount + before_it][0] != rule.before[before_it]:
+                                if tokens[i - tagsCount + before_it][0] != rule.before[before_it]:
                                     poniechaj = True
                                     
                         if (poniechaj):
@@ -553,16 +542,16 @@ class Model():
                         
                         for after_it in range(len(rule.after)):
                             if rule.after[after_it] in self.__tags:
-                                if rule.after[after_it] != self.__taggedTokens[i + 1 + after_it][1]:
+                                if rule.after[after_it] != tokens[i + 1 + after_it][1]:
                                     poniechaj = True
                             else:
-                                if rule.after[after_it] != self.__taggedTokens[i + 1 + after_it][0]:
+                                if rule.after[after_it] != tokens[i + 1 + after_it][0]:
                                     poniechaj = True
                                 
                         if (poniechaj):
                             continue
                                 
-                        self.__taggedTokens[i] = (self.__taggedTokens[i][0], rule.tag)
+                        tokens[i] = (tokens[i][0], rule.tag)
                         break
         
     def findMostCommonTag(self):
@@ -577,13 +566,13 @@ class Model():
         for word in tagsFreqDistMap.keys():
             self.__mostCommonTagMap[word] = tagsFreqDistMap[word].keys()[0]
         
-    def applyProbabilityTagger(self):
+    def applyProbabilityTagger(self, tokens):
         self.findMostCommonTag()
         
-        for i in range(len(self.__taggedTokens)):
-            if self.__taggedTokens[i][1] == self.__defaultTag:
-                if self.__taggedTokens[i][0] in self.__mostCommonTagMap.keys():
-                    self.__taggedTokens[i] = (self.__taggedTokens[i][0], self.__mostCommonTagMap[self.__taggedTokens[i][0]])
+        for i in range(len(tokens)):
+            if tokens[i][1] == self.__defaultTag:
+                if tokens[i][0] in self.__mostCommonTagMap.keys():
+                    tokens[i] = (tokens[i][0], self.__mostCommonTagMap[tokens[i][0]])
         
     def getTaggingRules(self, tagger):
         f = codecs.open(self.__tmpPath + tagger + 'TaggingRules.txt', encoding='utf-8')
@@ -702,8 +691,8 @@ class Model():
             for i in offsets:
                 if lines <= 0:
                     break
-                left = (' '.join(self.__tokens[i-wordCount:i]))
-                right = ' '.join(self.__tokens[i+1:i+wordCount+1])
-                contexts.append( left + ' ' + self.__tokens[i].upper() + ' ' + right)
+                left = (' '.join(self.__tokens[i-wordCount:i][0]))
+                right = ' '.join(self.__tokens[i+1:i+wordCount+1][0])
+                contexts.append( left + ' ' + self.__tokens[i][0].upper() + ' ' + right)
                 lines -= 1
         return contexts

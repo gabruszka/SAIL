@@ -37,6 +37,13 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.browseBtn, QtCore.SIGNAL("clicked()"), self.onSelectFile)
         self.connect(self.view.loadBtn, QtCore.SIGNAL("clicked()"), self.onLoadCorpus)
         
+        
+        self.connect(self.view.showCorpusTextBtn, QtCore.SIGNAL("clicked()"),
+                     lambda: self.showPlainTextDialog(self.model.getRawText(), "Raw corpus text"))
+        self.connect(self.view.showTokensBtn, QtCore.SIGNAL("clicked()"),
+                     lambda: self.showTableDialog(self.model.getTokens(), "Tokens from corpus", ["Token", "Tag"]))
+       
+        
         #Frequency
         self.connect(self.view.findMostCommonBtn, QtCore.SIGNAL("clicked()"), self.onFindMostCommon)
         self.connect(self.view.ignoreListCommonBtn, 
@@ -58,12 +65,20 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.findPatternBtn, QtCore.SIGNAL("clicked()"), self.onFindPattern)
         self.connect(self.view.previewPatternBtn, QtCore.SIGNAL("clicked()"), self.onPreviewPatternWords)
         
+        
+        
         #POS tagging
         self.connect(self.view.POSbrowseBtn, QtCore.SIGNAL("clicked()"), self.onPOSbrowse)
         self.connect(self.view.POSloadBtn, QtCore.SIGNAL("clicked()"), self.onPOSload)
         self.connect(self.view.applyTaggerBtn, QtCore.SIGNAL("clicked()"), self.onApplyTagger)
         #self.connect(self.view.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
-        self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTagging)
+        self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"),
+                     lambda: self.showTableDialog(self.model.getTaggedTokens(),
+                                                  "Tagged Tokens from POS-tagged corpus"
+                                                   if self.view.tagPOSCorpusRadio.isChecked()
+                                                   else "Tagged Tokens from main corpus"
+                                                   , ["Token", "Tag"]))
+       
         self.connect(self.view.previewWrongTagsBtn, QtCore.SIGNAL("clicked()"), self.onPreviewWrongTags)
         
         self.connect(self.view.setManualTagsBtn, 
@@ -106,7 +121,6 @@ class Presenter(QtGui.QMainWindow):
         self.view.wordCount.setText("")
         self.view.tabWidget.setEnabled(False)
         self.view.loadBtn.setEnabled(False)
-        self.view.corpusText.setPlainText("")
         self.view.taggedWordCount.setText("")
         self.view.taggedPercentage.setText("")
         
@@ -118,21 +132,25 @@ class Presenter(QtGui.QMainWindow):
             self.view.showFreqDistBtn.setEnabled(False)
             self.view.previewForeignBtn.setEnabled(False)
             self.view.previewPatternBtn.setEnabled(False)
+            print "enabled"
             
             self.view.encoding.setText(encoding)
             self.view.wordCount.setText(str(self.model.getWordCount()))
-            self.view.corpusText.setPlainText(self.model.getRawText())
             #self.view.rawText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
             self.view.avgWordLength.setText(str(self.model.getAvgWordLength()))
             self.view.avgSentLength.setText(str(self.model.getAvgSentLength()))
             self.view.lexicalDiversity.setText(str(self.model.getLexicalDiversity()))
-            
             self.view.wordTypesCount.setText(str(self.model.getWordTypesCount()))
+            print "statistics"
+            
             self.view.hapaxCount.setText(str(len(self.model.getHapaxes())))
             self.view.hapaxPercentage.setText(str(self.model.getHapaxPercentage()))
+            print "hapax"
             
-            self.view.tokenizedText.setPlainText('\n'.join(self.model.getTokens()))
+            #self.showPlainTextDialog('\n'.join(self.model.getTokens()), "Tokens from corpus")
+            #self.showPlainTextDialog(self.model.getRawText(), "Raw corpus text")
             
+            #self.view.corpusText.setPlainText(self.model.getRawText())
             #self.onRefreshForeignWords()
         else:
             self.view.encoding.setText("not recognized!")
@@ -141,6 +159,22 @@ class Presenter(QtGui.QMainWindow):
         self.view.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
         self.view.loadBtn.setEnabled(True)
         
+    def showPlainTextDialog(self, data, title):
+        
+        dialog= QtGui.QDialog(self)
+        #dialog.setMinimumHeight(1000)
+        dialog.setWindowTitle(title)
+        
+        try:
+            textEdit = QtGui.QPlainTextEdit(dialog)
+            textEdit.setPlainText(data)
+            
+            layout = QtGui.QVBoxLayout(dialog)
+            layout.addWidget(textEdit)
+            dialog.show()
+        except:
+            print "Dziadostwo!"
+                
     def showTableDialog(self, data, windowTitle, headerList, onDeleteFromSet=None):
         
         dialog= QtGui.QDialog(self)
@@ -382,7 +416,9 @@ class Presenter(QtGui.QMainWindow):
         
     def onPOSload(self):
         self.model.loadPOSCorpus(self.view.POScorpusPath.text())
-        self.view.corpusText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedCorpus()]))
+        #self.view.corpusText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedCorpus()]))
+        self.showPlainTextDialog('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedCorpus()]), "Tokens from POS-tagged corpus")
+        
         self.view.tagPOSCorpusRadio.setEnabled(True)
         
     def onApplyTagger(self):
@@ -400,7 +436,7 @@ class Presenter(QtGui.QMainWindow):
             self.model.applyTaggers(taggers, self.view.tagPOSCorpusRadio.isChecked())
             
             self.view.taggedWordCount.setText(str(self.model.getTagCount()))
-            percentage = round(self.model.getTagCount()*100/float(self.model.getTaggedTokensCount()), 2)
+            percentage = round(self.model.getTagCount()*100/float(self.model.getTokensCount()), 2)
             self.view.taggedPercentage.setText(str(percentage))
             
             if self.view.tagPOSCorpusRadio.isChecked():
@@ -414,7 +450,9 @@ class Presenter(QtGui.QMainWindow):
                 self.view.wrongTagsFrame.setEnabled(False)
                 
     def onPreviewTagging(self):
-        self.view.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
+        #self.view.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
+        self.showPlainTextDialog('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]),
+                                 "Tagged tokens")
      
     def onPreviewWrongTags(self):
         wrongTags = self.model.getWrongTags()
