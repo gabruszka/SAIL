@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>394</width>
-    <height>619</height>
+    <height>626</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,10 +38,10 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>5</x>
-      <y>176</y>
+      <x>10</x>
+      <y>203</y>
       <width>381</width>
-      <height>401</height>
+      <height>382</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -72,7 +72,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideMiddle</enum>
@@ -180,7 +180,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>55</y>
+         <y>57</y>
          <width>91</width>
          <height>16</height>
         </rect>
@@ -789,7 +789,7 @@
         <x>10</x>
         <y>100</y>
         <width>251</width>
-        <height>141</height>
+        <height>131</height>
        </rect>
       </property>
       <property name="title">
@@ -891,9 +891,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>280</y>
+        <y>266</y>
         <width>361</width>
-        <height>91</height>
+        <height>87</height>
        </rect>
       </property>
       <property name="title">
@@ -1040,7 +1040,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>250</y>
+        <y>238</y>
         <width>75</width>
         <height>23</height>
        </rect>
@@ -1053,7 +1053,7 @@
       <property name="geometry">
        <rect>
         <x>100</x>
-        <y>250</y>
+        <y>238</y>
         <width>75</width>
         <height>23</height>
        </rect>
@@ -1371,6 +1371,25 @@
        </property>
        <property name="readOnly">
         <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QSpinBox" name="collMaxGap">
+       <property name="geometry">
+        <rect>
+         <x>140</x>
+         <y>60</y>
+         <width>41</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>20</number>
+       </property>
+       <property name="value">
+        <number>0</number>
        </property>
       </widget>
      </widget>
@@ -1714,30 +1733,119 @@
      </property>
     </widget>
    </widget>
-   <widget class="QPushButton" name="showCorpusTextBtn">
+   <widget class="QFrame" name="buttonFrame">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>147</y>
-      <width>111</width>
-      <height>23</height>
+      <y>170</y>
+      <width>221</width>
+      <height>31</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Show Corpus Text</string>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
     </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QPushButton" name="showTokensBtn">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>4</y>
+       <width>91</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Show Tokens</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
+     <property name="default">
+      <bool>false</bool>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="showCorpusTextBtn">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>4</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Show Corpus Text</string>
+     </property>
+    </widget>
    </widget>
-   <widget class="QPushButton" name="showTokensBtn">
+   <widget class="QLabel" name="label_28">
     <property name="geometry">
      <rect>
-      <x>130</x>
-      <y>147</y>
-      <width>91</width>
-      <height>23</height>
+      <x>14</x>
+      <y>146</y>
+      <width>81</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Show Tokens</string>
+     <string>Last operation:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lastOperation">
+    <property name="geometry">
+     <rect>
+      <x>95</x>
+      <y>146</y>
+      <width>111</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+    <property name="dragEnabled">
+     <bool>true</bool>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_29">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>146</y>
+      <width>31</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Time:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="elapsedTime">
+    <property name="geometry">
+     <rect>
+      <x>306</x>
+      <y>146</y>
+      <width>61</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="dragEnabled">
+     <bool>true</bool>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>

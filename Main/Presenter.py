@@ -3,6 +3,8 @@ Created on 03-11-2013
 
 @author: Gabriela Pastuszka
 '''
+
+import time
 import pyqtgraph as pg
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem
 from pyqtgraph.graphicsItems.LegendItem import LegendItem
@@ -28,6 +30,7 @@ class Presenter(QtGui.QMainWindow):
         self.view.tabWidget.setEnabled(False)
         self.view.loadBtn.setEnabled(False)
         self.view.POSloadBtn.setEnabled(False)
+        self.view.buttonFrame.setEnabled(False)
         self.view.zipfFrame.setEnabled(False)
         self.view.tagPOSCorpusRadio.setEnabled(False)
         self.view.wrongTagsFrame.setEnabled(False)
@@ -72,12 +75,7 @@ class Presenter(QtGui.QMainWindow):
         self.connect(self.view.POSloadBtn, QtCore.SIGNAL("clicked()"), self.onPOSload)
         self.connect(self.view.applyTaggerBtn, QtCore.SIGNAL("clicked()"), self.onApplyTagger)
         #self.connect(self.view.definePatternsBtn, QtCore.SIGNAL("clicked()"), self.onDefinePatterns)
-        self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"),
-                     lambda: self.showTableDialog(self.model.getTaggedTokens(),
-                                                  "Tagged Tokens from POS-tagged corpus"
-                                                   if self.view.tagPOSCorpusRadio.isChecked()
-                                                   else "Tagged Tokens from main corpus"
-                                                   , ["Token", "Tag"]))
+        self.connect(self.view.previewTaggingBtn, QtCore.SIGNAL("clicked()"), self.onPreviewTaggedTokens)
        
         self.connect(self.view.previewWrongTagsBtn, QtCore.SIGNAL("clicked()"), self.onPreviewWrongTags)
         
@@ -116,23 +114,32 @@ class Presenter(QtGui.QMainWindow):
         #Context
         self.connect(self.view.findContextBtn, QtCore.SIGNAL("clicked()"), self.onFindContext)
         
+    def fillTimeData(self, operation, time):
+        self.view.lastOperation.setText(operation)
+        self.view.elapsedTime.setText(str(round(time,3))+'s')
+        
+        
     def onLoadCorpus(self):
+        before = time.time()
         
         self.view.wordCount.setText("")
         self.view.tabWidget.setEnabled(False)
         self.view.loadBtn.setEnabled(False)
+        
         self.view.taggedWordCount.setText("")
         self.view.taggedPercentage.setText("")
         
         encoding = self.model.loadCorpus(self.view.corpusPath.text())
+        print time.time() - before
         
         if encoding != "":
             self.view.tabWidget.setEnabled(True)
+            self.view.buttonFrame.setEnabled(True)
+            
             self.view.loadBtn.setEnabled(False)
             self.view.showFreqDistBtn.setEnabled(False)
             self.view.previewForeignBtn.setEnabled(False)
             self.view.previewPatternBtn.setEnabled(False)
-            print "enabled"
             
             self.view.encoding.setText(encoding)
             self.view.wordCount.setText(str(self.model.getWordCount()))
@@ -141,19 +148,16 @@ class Presenter(QtGui.QMainWindow):
             self.view.avgSentLength.setText(str(self.model.getAvgSentLength()))
             self.view.lexicalDiversity.setText(str(self.model.getLexicalDiversity()))
             self.view.wordTypesCount.setText(str(self.model.getWordTypesCount()))
-            print "statistics"
             
             self.view.hapaxCount.setText(str(len(self.model.getHapaxes())))
             self.view.hapaxPercentage.setText(str(self.model.getHapaxPercentage()))
-            print "hapax"
-            
-            #self.showPlainTextDialog('\n'.join(self.model.getTokens()), "Tokens from corpus")
-            #self.showPlainTextDialog(self.model.getRawText(), "Raw corpus text")
-            
+
             #self.view.corpusText.setPlainText(self.model.getRawText())
             #self.onRefreshForeignWords()
         else:
             self.view.encoding.setText("not recognized!")
+            
+        self.fillTimeData("loading corpus", time.time() - before)
         
     def onSelectFile(self):
         self.view.corpusPath.setText(QtGui.QFileDialog.getOpenFileName())
@@ -165,15 +169,14 @@ class Presenter(QtGui.QMainWindow):
         #dialog.setMinimumHeight(1000)
         dialog.setWindowTitle(title)
         
-        try:
-            textEdit = QtGui.QPlainTextEdit(dialog)
-            textEdit.setPlainText(data)
-            
-            layout = QtGui.QVBoxLayout(dialog)
-            layout.addWidget(textEdit)
-            dialog.show()
-        except:
-            print "Dziadostwo!"
+
+        textEdit = QtGui.QPlainTextEdit(dialog)
+        textEdit.setPlainText(data)
+        
+        layout = QtGui.QVBoxLayout(dialog)
+        layout.addWidget(textEdit)
+        dialog.show()
+
                 
     def showTableDialog(self, data, windowTitle, headerList, onDeleteFromSet=None):
         
@@ -194,7 +197,7 @@ class Presenter(QtGui.QMainWindow):
             itemList = []
             itemList.append(MyTableItem(data[row][0])) 
             for j in range(1, len(data[row])):
-                itemList.append(MyTableItem(str(data[row][j])))
+                itemList.append(MyTableItem(unicode(data[row][j])))
             model.appendRow(itemList)
                 
         for column in range(len(headerList)):
@@ -299,6 +302,8 @@ class Presenter(QtGui.QMainWindow):
         self.showListDialog(hapaxes, title, "Word")
         
     def onComputeZipf(self):
+        before = time.time()
+        
         self.view.zipfFrame.setEnabled(True)
         unit = ''
         if self.view.wordZipfRadio.isChecked():
@@ -317,7 +322,10 @@ class Presenter(QtGui.QMainWindow):
         self.view.ZipfTrend.setText( str( round(self.model.getPolyFit()[0], 3) ) + 'x + ' + str( round( self.model.getPolyFit()[1], 3) ) )
         self.view.ZipfError.setText( str( round( self.model.getRelZipfError(), 3 ) ) )
         
+        self.fillTimeData("computing Zipf data", time.time() - before)
+        
     def onZipfPlot(self):
+        before = time.time()
         
         pg.setConfigOptions(antialias=True)
         dialog= QtGui.QDialog(self)
@@ -341,6 +349,9 @@ class Presenter(QtGui.QMainWindow):
         dialog.setLayout(lay)
         dialog.show()
                 
+        self.fillTimeData("creating Zipf plot", time.time() - before)
+        
+        
     def onShowFreqDist(self):
         
         freqDistData = self.model.prepareFreqDist(self.view.bigramZipfRadio.isChecked())
@@ -416,12 +427,11 @@ class Presenter(QtGui.QMainWindow):
         
     def onPOSload(self):
         self.model.loadPOSCorpus(self.view.POScorpusPath.text())
-        #self.view.corpusText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedCorpus()]))
-        self.showPlainTextDialog('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedCorpus()]), "Tokens from POS-tagged corpus")
-        
         self.view.tagPOSCorpusRadio.setEnabled(True)
         
     def onApplyTagger(self):
+        before = time.time()
+        
         taggers = []
         if self.view.manualTaggerChk.checkState():
             taggers.append('manual')
@@ -444,21 +454,32 @@ class Presenter(QtGui.QMainWindow):
                 percentage = 0 if self.model.getTagCount() == 0 else round(self.model.getTagErrorCount()*100/float(self.model.getTagCount()), 2)
                 self.view.wrongTagsPercentage.setText(str(percentage))
                 self.view.wrongTagsFrame.setEnabled(True)
+                self.__mainCorpusLastTagged = False
             else:
                 self.view.wrongTagsCount.setText("")
                 self.view.wrongTagsPercentage.setText("")
                 self.view.wrongTagsFrame.setEnabled(False)
+                self.__mainCorpusLastTagged = True
                 
-    def onPreviewTagging(self):
-        #self.view.tokenizedText.setPlainText('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]))
-        self.showPlainTextDialog('\n'.join([token[0]+ '\t\t' + token[1] for token in self.model.getTaggedTokens()]),
-                                 "Tagged tokens")
-     
+                
+        self.fillTimeData("applying POS taggers", time.time() - before)
+                
+    def onPreviewTaggedTokens(self):
+        
+        if self.__mainCorpusLastTagged:
+            self.showTableDialog(self.model.getTokens(), 
+                                 "Tagged tokens from main corpus",
+                                 ["Token", "Tag"])
+        else:
+            self.showTableDialog(self.model.getTokensFromPOSCorpus(),
+                                 "Tagged tokens from POS-tagged corpus",
+                                 ["Token", "Tag"])
+
     def onPreviewWrongTags(self):
         wrongTags = self.model.getWrongTags()
         if wrongTags != []:
             title = str(len(wrongTags)) + ' wrong tags'
-            self.showTableDialog(wrongTags, title, ["Word", "Tag"])
+            self.showTableDialog(wrongTags, title, ["Ordinal", "Word", "Wrong Tag", "Correct Tag"])
         else:
             self.noMatchesWindow()
         
@@ -490,9 +511,10 @@ class Presenter(QtGui.QMainWindow):
             self.model.setTaggingRules(tagger, rules)
                   
     def onFindColl(self):
+        before = time.time()
 
         self.model.findCollocations(self.view.methodBox.currentText(), 
-                                    int(self.view.collWindowBox.currentText())+2,
+                                    self.view.collMaxGap.value()+2,
                                     self.view.minFreqColl.value(),
                                     self.view.collocationsCount.value(),
                                     self.view.searchedWordColl.text() 
@@ -500,6 +522,7 @@ class Presenter(QtGui.QMainWindow):
         self.view.showCollBtn.setEnabled(True)
         self.currentCollMethod = self.view.methodBox.currentText()
         
+        self.fillTimeData("finding collocations", time.time() - before)
 
     
     def onShowCollocations(self):
@@ -517,3 +540,4 @@ class Presenter(QtGui.QMainWindow):
                 self.showListDialog(contexts, title, "Context")
             else:
                 self.noMatchesWindow()
+

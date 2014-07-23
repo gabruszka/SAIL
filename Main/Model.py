@@ -218,7 +218,7 @@ class Model():
     
     
     ### PARTS OF SPEECH TAGGING TAB
-    def getTaggedTokens(self):
+    def getTokensFromPOSCorpus(self):
         return self.__POStokens
         
     def getTokensCount(self):
@@ -256,8 +256,6 @@ class Model():
         
     def loadCorpus(self, path):
         
-        #badChars = '[\\\*\-\"\`\%\&()\[\]\'\.\,\{\}\d_@:;<>\?\!]'
-
         for encoding in self.__encodings:
 
             try:
@@ -286,9 +284,8 @@ class Model():
             
             #TOKENS
             self.__tokens = [[token, ''] for token in list(itertools.chain(*[ customWordtokenize(sent) for sent in sentences]))]
-            print self.__tokens[0:10]
-            #wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
-            wordTokenizer = RegexpTokenizer('[\w]+')
+            wordTokenizer = RegexpTokenizer('[a-zA-Z0-9\xe0\xe1\xe8\xe9\xec\xed\xf2\xf3\xf9\xfa]+')
+            #wordTokenizer = RegexpTokenizer('[\w]+')
             
             sentences = [wordTokenizer.tokenize(sent.lower()) for sent in sentences if len(wordTokenizer.tokenize(sent)) > 0]
             words =  list(itertools.chain(*sentences))
@@ -299,16 +296,11 @@ class Model():
             self.__avgWordLength = round(np.mean( [len(word) for word in words]), 3)
             self.__freqDist = FreqDist(words)
             self.__wordCount = len(words)
-            self.__lexicalDiversity = round(len(words)/float(len(self.__freqDist.items())), 3)
+            self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 5)
             
-            
-            #self.__lexicalDiversity = round(len(self.__freqDist.items())/float(len(words)), 3)
-        
             ### resetting members
             self.__concordanceIndex = None
             self.__bigrams = None
-            print "model.loadCorpus done"
-                 
                  
         return encoding
     
@@ -450,7 +442,7 @@ class Model():
                     if self.__POStokens[i][1] != self.__taggedCorpus[i][1]:
                         errorCount+=1
                         #wrongTags.append((i, self.__POStokens[i][0], self.__POStokens[i][1], self.__taggedCorpus[i][1]))
-                        self.__wrongTags.append([self.__POStokens[i][0], self.__POStokens[i][1], self.__taggedCorpus[i][1]])
+                        self.__wrongTags.append([str(i+1), self.__POStokens[i][0], self.__POStokens[i][1], self.__taggedCorpus[i][1]])
                 else:
                     notTagged.append(self.__POStokens[i][0])
                     
