@@ -335,7 +335,7 @@ class Presenter(QtGui.QMainWindow):
         ab = self.model.getPolyFit()
         s = ScatterPlotItem(logx, self.model.getLogfreqDist(), size=4, pen=None, brush=pg.mkBrush(255, 255, 255))
         s.addPoints(logx, self.model.getLogfreqDist())
-        plot = plotWidget.plot(logx, [self.model.getPoly(x) for x in logx],  pen=(255,0,0), size=3)
+        plot = plotWidget.plot(logx, [self.model.getPoly(x) for x in logx],  pen=(0,255,255), size=4)
         
         legend = LegendItem((130,60), offset=(500,30))
         legend.setParentItem(plotWidget.getPlotItem())
