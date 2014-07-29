@@ -446,8 +446,6 @@ class Presenter(QtGui.QMainWindow):
             self.model.applyTaggers(taggers, self.view.tagPOSCorpusRadio.isChecked())
             
             self.view.taggedWordCount.setText(str(self.model.getTagCount()))
-            percentage = round(self.model.getTagCount()*100/float(self.model.getTokensCount()), 2)
-            self.view.taggedPercentage.setText(str(percentage))
             
             if self.view.tagPOSCorpusRadio.isChecked():
                 self.view.wrongTagsCount.setText(str(self.model.getTagErrorCount()))
@@ -455,11 +453,17 @@ class Presenter(QtGui.QMainWindow):
                 self.view.wrongTagsPercentage.setText(str(percentage))
                 self.view.wrongTagsFrame.setEnabled(True)
                 self.__mainCorpusLastTagged = False
+                
+                percentage = round(self.model.getTagCount()*100/float(self.model.getTaggedTokensCount()), 2)
+                self.view.taggedPercentage.setText(str(percentage))
             else:
                 self.view.wrongTagsCount.setText("")
                 self.view.wrongTagsPercentage.setText("")
                 self.view.wrongTagsFrame.setEnabled(False)
                 self.__mainCorpusLastTagged = True
+                
+                percentage = round(self.model.getTagCount()*100/float(self.model.getTokensCount()), 2)
+                self.view.taggedPercentage.setText(str(percentage))
                 
                 
         self.fillTimeData("applying POS taggers", time.time() - before)

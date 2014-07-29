@@ -1,6 +1,6 @@
 PUNCT . ? ! , ; : ... ( ) [ ] { } " - 
 SPECIAL / % = + 
-ART l il i un una
+ART l il i un
 CONJ e ed o se ma mentre oppure sebbene quantunque allorché perciò anziché allorquando
 NUM due tre quattro cinque sette otto ott nove dieci venti vent trenta trent
 PREP a ad di d su in per con senza contro dietro dentro fra tra fuori accanto dopo oltre attorno attraverso durante

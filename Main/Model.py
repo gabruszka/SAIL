@@ -224,6 +224,9 @@ class Model():
     def getTokensCount(self):
         return len(self.__tokens)
         
+    def getTaggedTokensCount(self):
+        return len(self.__POStokens)
+        
     def getTagCount(self):
         return self.__tagCount
     
