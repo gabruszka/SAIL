@@ -239,7 +239,7 @@ class Presenter(QtGui.QMainWindow):
         
         self.connect(saveToFile, 
                      QtCore.SIGNAL("clicked()"),
-                     lambda: self.onSaveToFile(data))
+                     lambda: self.onSaveToFile([line+'\n' for line in data ]))
         
         layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(tableView)

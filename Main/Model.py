@@ -373,12 +373,12 @@ class Model():
         foreignWords = []
         if 'consonant' in rules:
             cond = re.compile('.*[qrtpsdfghlzcvbnm]$')
-            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0])]
+            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0]) and len(item[0])>2]
             
         if 'wyjkx' in rules:
             cond = re.compile('.*[wyjkx].*')
-            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0])]
-            
+            foreignWords += [item for item in self.__freqDist.items() if cond.match(item[0]) and len(item[0])>2]
+        
         self.__foreignWords = [item for item in foreignWords
                                if item[0] not in self.__allowedForeign]
         self.__foreignWordsCount = sum([word[1] for word in self.__foreignWords])
@@ -672,10 +672,10 @@ class Model():
         self.__bigrams = MyBigramCollFinder(wfd, bfd)
 
     ######### CONTEXT TAB ###########
-    def findWordContext(self, word, lines=25, wordCount=2):
+    def findWordContext(self, word, lines, wordCount):
         
         if not self.__concordanceIndex:
-            self.__concordanceIndex = nltk.ConcordanceIndex([token for token in self.__tokens],
+            self.__concordanceIndex = nltk.ConcordanceIndex([token[0] for token in self.__tokens],
                                                             key=lambda s:s.lower())
             
         contexts = []
@@ -686,8 +686,8 @@ class Model():
             for i in offsets:
                 if lines <= 0:
                     break
-                left = (' '.join(self.__tokens[i-wordCount:i][0]))
-                right = ' '.join(self.__tokens[i+1:i+wordCount+1][0])
+                left = (' '.join([token[0] for token in self.__tokens[i-wordCount:i]]))
+                right = ' '.join([token[0] for token in self.__tokens[i+1:i+wordCount+1]])
                 contexts.append( left + ' ' + self.__tokens[i][0].upper() + ' ' + right)
                 lines -= 1
         return contexts
