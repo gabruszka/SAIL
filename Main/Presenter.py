@@ -208,9 +208,14 @@ class Presenter(QtGui.QMainWindow):
         
         saveToFile = QtGui.QPushButton("Save to File")
         
-        self.connect(saveToFile, 
-                     QtCore.SIGNAL("clicked()"),
-                     lambda: self.onSaveToFile([line[0]+' ' + unicode(line[1]) + '\n' for line in data  ] ))
+        if (len(data[0]) == 2):
+            self.connect(saveToFile, 
+                         QtCore.SIGNAL("clicked()"),
+                         lambda: self.onSaveToFile([line[0]+' ' + unicode(line[1]) + '\n' for line in data  ] ))
+        if (len(data[0]) == 3):
+            self.connect(saveToFile,
+                        QtCore.SIGNAL("clicked()"),
+                        lambda: self.onSaveToFile([line[0]+' ' + unicode(line[1])+' ' + unicode(line[2]) + '\n' for line in data  ] ))
         
         layout = QtGui.QVBoxLayout(dialog)
         layout.addWidget(tableView)
