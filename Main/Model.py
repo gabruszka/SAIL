@@ -6,6 +6,7 @@ Created on 03-11-2013
 @author: Gabriela Pastuszka
 '''
 import re
+import os
 import numpy as np
 import math
 from nltk import FreqDist
@@ -42,9 +43,6 @@ def customWordtokenize(text):
         text = re.sub(r'([^\.])(\.)([\]\)}>"\']*)\s*$', r'\1 \2\3 ', text)
         text = re.sub(r'[?!]', r' \g<0> ', text)
         
-
-        #text = re.sub(r"([^'])' ", r"\1 ' ", text)
-
         #parens, brackets, etc.
         #text = re.sub(r'\<.*\>', r' ', text)
         text = re.sub(r'[\]\[\(\)\{\}]', r' \g<0> ', text)
@@ -88,36 +86,16 @@ class Model():
         self.__defTagger = nltk.DefaultTagger(self.__defaultTag)
         self.__tags = {'NOUN', 'ADV', 'ADJ', 'PRON', 'DPREP', 'VERB', 'NUM', 'PREP', 'ART', 'CONJ', 'PRONVERB', 'PUNCT', 'SPECIAL'}
         self.__manualTags = {tag: set() for tag in self.__tags}
-        self.__tmpPath = 'D:\\Studia\\MGR\workspace\\SAIL\\Main\\'
+        
+        self.__tmpPath =  os.path.dirname(os.path.abspath(__file__))+ '\\'
         self.parseSyntaxRules()
         
     def initFields(self):
         
-#         self.__tokens = []
-#         self.__freqDist = None
-        
-        #Zipf
-#         self.__logx = []
-#         self.__logfreqDist = []
-#         self.__polyFit = None
-#         self.__relZipfError = None
-        
-        #foreign
-#         self.__foreignWords = None
-#         self.__foreignWordsCount = 0
-        
-        #POS tagging
-#         self.__taggedCorpus = []
-#         self.__POStokens = []
-#         self.__tagCount = 0
-#         self.__tagErrorCount = 0
-#         self.__wrongTags = []
-
         self.__allowedForeign = set(codecs.open(self.__tmpPath + 'allowedForeign.txt', encoding='utf-8').read().split())
         self.__ignoredCommon = set(codecs.open(self.__tmpPath + 'commonIgnoredWords.txt', encoding='utf-8').read().split())
         self.__ignoredColl = set(codecs.open(self.__tmpPath + 'wordsIgnoredInCollocations.txt', encoding='utf-8').read().split())
         self.__concordanceIndex = None
-        
         
         
     ################################
@@ -248,7 +226,6 @@ class Model():
         self.__ignoredColl = value
 
     def getCollocations(self):
-        #return [(unicode(x[0]+' '+x[1]),y) for x,y in self.__collocations]
         return self.__collocations
         
     ################################

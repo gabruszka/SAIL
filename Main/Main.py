@@ -1,5 +1,5 @@
 import sys
-#from nltk.corpus import PlaintextCorpusReader
+
 from PyQt4 import QtGui
 from Presenter import Presenter
 from Model import Model
@@ -11,8 +11,6 @@ def main():
  
     win = Presenter(model)
     app.exec_()
- 
- 
  
 if __name__ == '__main__':
     sys.exit(main())
